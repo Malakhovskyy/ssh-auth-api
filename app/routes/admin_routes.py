@@ -115,7 +115,19 @@ async def add_admin_page(request: Request, user: str = Depends(get_current_admin
     return templates.TemplateResponse("admin_add.html", {"request": request})
 
 @admin_router.post("/admin/admins/add")
-async def add_admin(request: Request, username: str = Form(...), password: str = Form(...), email: str = Form(...)):
+async def add_admin(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...),
+    email: str = Form(...)
+):
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            "admin_add.html",
+            {"request": request, "error": "Passwords do not match"}
+        )
+
     salt = generate_salt()
     password_hash = hash_password(password, salt)
 

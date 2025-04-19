@@ -24,6 +24,8 @@ do
   sed -i "s|\$DOMAIN|$DOMAIN|g" "$file"
 done
 
+sed -i "s|\$DOMAIN|$DOMAIN|g" nginx/startup.sh
+
 chmod +x certbot/startup.sh
 chmod +x nginx/startup.sh
 chmod 777 nginx/certs

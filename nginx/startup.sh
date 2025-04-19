@@ -1,6 +1,6 @@
 #!/bin/bash
 
-DOMAIN=$DOMAIN
+
 
 if [ -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
   echo "[Startup] SSL certificates found. Starting full HTTPS nginx..."

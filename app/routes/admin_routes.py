@@ -125,20 +125,47 @@ async def add_admin(
     if password != confirm_password:
         return templates.TemplateResponse(
             "admin_add.html",
-            {"request": request, "error": "Passwords do not match"}
+            {
+                "request": request,
+                "error": "Passwords do not match",
+                "username": username,
+                "email": email
+            }
+        )
+
+    conn = get_db_connection()
+
+    # Check if username already exists
+    existing_admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
+    if existing_admin:
+        conn.close()
+        return templates.TemplateResponse(
+            "admin_add.html",
+            {
+                "request": request,
+                "error": "Admin username already exists",
+                "username": username,
+                "email": email
+            }
         )
 
     salt = generate_salt()
     password_hash = hash_password(password, salt)
 
-    conn = get_db_connection()
     conn.execute('''
         INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
         VALUES (?, ?, ?, ?, 1, 1)
     ''', (username, email, password_hash, salt))
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), f"Created new admin", object_modified=username)
+
+    # ✅ Log admin action
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Created new admin",
+        object_modified=username
+    )
+
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 # --- EDIT ADMIN (GET + POST) ---
@@ -164,12 +191,18 @@ async def edit_admin(
 ):
     conn = get_db_connection()
 
-    if password:  # If new password provided, verify and update
+    # Fetch current admin data
+    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    if not admin:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    if password:
         if password != confirm_password:
             conn.close()
             return templates.TemplateResponse(
-                "admin_edit.html", 
-                {"request": request, "admin": {"id": admin_id, "admin_username": "", "email": email, "enabled": enabled}, "error": "Passwords do not match"}
+                "admin_edit.html",
+                {"request": request, "admin": admin, "error": "Passwords do not match"}
             )
 
         salt = generate_salt()
@@ -180,7 +213,7 @@ async def edit_admin(
             SET email = ?, password_md5salted = ?, salt = ?, enabled = ?, must_change_password = ?
             WHERE id = ?
         ''', (email, password_hash, salt, enabled, force_password_change, admin_id))
-    else:  # Only update email and enabled/must_change_password
+    else:
         conn.execute('''
             UPDATE admins
             SET email = ?, enabled = ?, must_change_password = ?
@@ -189,7 +222,14 @@ async def edit_admin(
 
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), f"Created new admin", object_modified=username)
+
+    # ✅ Log admin action
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Edited admin",
+        object_modified=admin["admin_username"]
+    )
+
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 # --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
@@ -208,8 +248,23 @@ async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depe
 @admin_router.post("/admin/admins/delete/{admin_id}")
 async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
+
+    # Fetch admin username before deletion
+    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+
+    if not admin:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Admin not found")
+
     conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), f"Created new admin", object_modified=username)
+
+    # ✅ Log admin action
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Deleted admin",
+        object_modified=admin["admin_username"]
+    )
+
     return RedirectResponse(url="/admin/admins", status_code=303)

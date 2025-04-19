@@ -266,6 +266,17 @@ async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_
 @admin_router.get("/admin/logs", response_class=HTMLResponse)
 async def view_admin_logs(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    logs = conn.execute('SELECT * FROM admin_logs ORDER BY timestamp DESC').fetchall()
+
+    # Fetch admin action logs
+    admin_logs = conn.execute('SELECT id, admin_username, action, object_modified, NULL as ip_address, timestamp FROM admin_logs').fetchall()
+
+    # Fetch login attempt logs
+    login_logs = conn.execute('SELECT id, username as admin_username, "Login Attempt" as action, NULL as object_modified, ip_address, timestamp FROM login_attempts').fetchall()
+
     conn.close()
-    return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": logs})
+
+    # Merge and sort by timestamp descending
+    all_logs = list(admin_logs) + list(login_logs)
+    all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
+
+    return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": all_logs})

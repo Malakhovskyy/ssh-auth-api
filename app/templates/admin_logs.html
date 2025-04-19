@@ -16,6 +16,7 @@
                     <th>Admin Username</th>
                     <th>Action</th>
                     <th>Object Modified</th>
+                    <th>IP Address</th>
                     <th>Timestamp</th>
                 </tr>
             </thead>
@@ -26,6 +27,7 @@
                     <td>{{ log["admin_username"] }}</td>
                     <td>{{ log["action"] }}</td>
                     <td>{{ log["object_modified"] if log["object_modified"] else "-" }}</td>
+                    <td>{{ log["ip_address"] if log["ip_address"] else "-" }}</td>
                     <td>{{ log["timestamp"] }}</td>
                 </tr>
                 {% endfor %}

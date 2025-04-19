@@ -20,16 +20,18 @@ async def login_page(request: Request):
 
 @admin_router.post("/admin/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    ip_address = request.client.host
+    x_forwarded_for = request.headers.get('x-forwarded-for')
+    if x_forwarded_for:
+        ip_address = x_forwarded_for.split(',')[0].strip()
+    else:
+        ip_address = request.client.host
+
     admin = authenticate_admin(username, password, ip_address)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
-    request.session["admin_user"] = admin["admin_username"]
-
+        request.session["admin_user"] = admin["admin_username"]
     if admin["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
-
-#    log_admin_action(admin["admin_username"], "Logged in")
     return RedirectResponse(url="/admin/dashboard", status_code=303)
 
 @admin_router.get("/admin/logout")

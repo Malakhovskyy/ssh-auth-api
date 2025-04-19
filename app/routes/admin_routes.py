@@ -29,14 +29,14 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if admin["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
 
-    log_admin_action(admin["admin_username"], "Logged in")
+#    log_admin_action(admin["admin_username"], "Logged in")
     return RedirectResponse(url="/admin/dashboard", status_code=303)
 
 @admin_router.get("/admin/logout")
 async def logout(request: Request):
     username = request.session.get("admin_user", "unknown")
     logout_admin(request)
-    log_admin_action(username, "Logged out")
+#    log_admin_action(username, "Logged out")
     return RedirectResponse(url="/admin/login")
 
 @admin_router.get("/admin/dashboard", response_class=HTMLResponse)

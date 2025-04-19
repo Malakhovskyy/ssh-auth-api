@@ -1,8 +1,10 @@
 import sqlite3
 import os
 
-DB_DIR = os.getenv("DB_DIR", "./data")  # <-- new variable, default ./data
+DB_DIR = os.getenv("DB_DIR", "/app/data")  # always absolute inside container
 DB_PATH = os.path.join(DB_DIR, "sshkeys.db")
+
+print(f"Using database file at: {DB_PATH}")
 
 def get_db_connection():
     if not os.path.exists(DB_DIR):

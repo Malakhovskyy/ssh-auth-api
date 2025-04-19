@@ -24,5 +24,5 @@ Full system to manage SSH public keys via API with server access control, admin 
 ### 1. Clone the repo:
 
 ```bash
-git clone https://github.com/yourname/ssh-key-manager.git
+git clone https://github.com/Malakhovskyy/ssh-auth-api
 cd ssh-key-manager

@@ -1,8 +1,11 @@
 #!/bin/bash
 
-# Replace ${DOMAIN} with real env variable
-envsubst '${DOMAIN}' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.out
-mv /etc/nginx/conf.d/default.conf.out /etc/nginx/conf.d/default.conf
+if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+  echo "[Startup] SSL certificates not found, starting temporary HTTP-only nginx..."
+  cp /etc/nginx/conf.d/default.http.conf /etc/nginx/conf.d/default.conf
+else
+  echo "[Startup] SSL certificates found, starting full HTTPS nginx..."
+  envsubst '${DOMAIN}' < /etc/nginx/conf.d/default.ssl.conf > /etc/nginx/conf.d/default.conf
+fi
 
-# Start nginx
 nginx -g "daemon off;"

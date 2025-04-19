@@ -43,7 +43,10 @@ services:
     volumes:
       - ./nginx/certs:/etc/letsencrypt
       - ./nginx/html:/usr/share/nginx/html
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
+    entrypoint: ["/bin/sh", "/startup.sh"]
+    environment:
+      - DOMAIN=${DOMAIN}
+      - SMTP_TO=${SMTP_TO}
     depends_on:
       - nginx
     restart: unless-stopped

@@ -273,13 +273,25 @@ async def view_admin_logs(request: Request, user: str = Depends(get_current_admi
     # Fetch admin action logs
     admin_logs = conn.execute('SELECT id, admin_username, action, object_modified, NULL as ip_address, timestamp FROM admin_logs').fetchall()
 
-    # Fetch login attempt logs
-    login_logs = conn.execute('SELECT id, username as admin_username, "Login Attempt" as action, NULL as object_modified, ip_address, timestamp FROM login_attempts').fetchall()
+    # Fetch login attempts (both success and failed) and map action dynamically
+    login_logs_raw = conn.execute('SELECT id, username as admin_username, success, ip_address, timestamp FROM login_attempts').fetchall()
+
+    login_logs = []
+    for log in login_logs_raw:
+        action_text = "Login Success" if log["success"] else "Login Failed"
+        login_logs.append({
+            "id": log["id"],
+            "admin_username": log["admin_username"],
+            "action": action_text,
+            "object_modified": None,
+            "ip_address": log["ip_address"],
+            "timestamp": log["timestamp"]
+        })
 
     conn.close()
 
-    # Merge and sort by timestamp descending
-    all_logs = list(admin_logs) + list(login_logs)
+    # Merge admin_logs + login_logs
+    all_logs = list(admin_logs) + login_logs
     all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
 
     return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": all_logs})

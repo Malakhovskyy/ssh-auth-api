@@ -249,7 +249,6 @@ async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depe
 async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    # Fetch admin username before deletion
     admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
 
     if not admin:
@@ -260,11 +259,11 @@ async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_
     conn.commit()
     conn.close()
 
-    # ✅ Log admin action
+    # ✅ Correct positional call
     log_admin_action(
         request.session.get("admin_user"),
         "Deleted admin",
-        object_modified=admin["admin_username"]
+        admin["admin_username"]
     )
 
     return RedirectResponse(url="/admin/admins", status_code=303)

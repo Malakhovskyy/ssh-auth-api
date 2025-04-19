@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin, hash_password
-from models.models import init_db, get_db_connection, generate_salt, log_admin_act
+from models.models import init_db, get_db_connection, generate_salt, log_admin_action
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 import os

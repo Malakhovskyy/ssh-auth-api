@@ -7,6 +7,8 @@ from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 import os
 from datetime import datetime, timedelta
+from services.token_service import generate_reset_token, verify_reset_token
+from services.email_service import send_password_reset_email
 
 templates = Jinja2Templates(directory="templates")
 admin_router = APIRouter()
@@ -295,3 +297,52 @@ async def view_admin_logs(request: Request, user: str = Depends(get_current_admi
     all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
 
     return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": all_logs})
+
+
+# --- Request password reset page ---
+@admin_router.get("/admin/request-password-reset", response_class=HTMLResponse)
+async def request_password_reset_page(request: Request):
+    return templates.TemplateResponse("request_password_reset.html", {"request": request})
+
+# --- Handle password reset request ---
+@admin_router.post("/admin/request-password-reset")
+async def request_password_reset(request: Request, email: str = Form(...)):
+    conn = get_db_connection()
+    admin = conn.execute('SELECT * FROM admins WHERE email = ?', (email,)).fetchone()
+    conn.close()
+
+    if not admin:
+        return templates.TemplateResponse("request_password_reset.html", {"request": request, "error": "Email not found."})
+
+    token = generate_reset_token(admin['admin_username'])
+
+    reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
+
+    send_password_reset_email(email, reset_link)
+
+    return templates.TemplateResponse("request_password_reset.html", {"request": request, "message": "Reset link sent to your email."})
+
+# --- Show password reset form ---
+@admin_router.get("/admin/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password_page(token: str, request: Request):
+    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+
+# --- Handle password reset form submit ---
+@admin_router.post("/admin/reset-password/{token}")
+async def reset_password(token: str, request: Request, new_password: str = Form(...), confirm_password: str = Form(...)):
+    if new_password != confirm_password:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Passwords do not match."})
+
+    username = verify_reset_token(token)
+    if not username:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
+
+    salt = secrets.token_hex(8)
+    password_hash = md5((salt + new_password).encode('utf-8')).hexdigest()
+
+    conn = get_db_connection()
+    conn.execute('UPDATE admins SET password_md5salted = ?, salt = ?, must_change_password = 0 WHERE admin_username = ?', (password_hash, salt, username))
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(url="/admin/login", status_code=303)

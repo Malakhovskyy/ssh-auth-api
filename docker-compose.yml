@@ -37,20 +37,21 @@ services:
       - ssh-key-manager
     restart: unless-stopped
 
-certbot:
-  image: certbot/certbot
-  container_name: certbot
-  volumes:
-    - ./nginx/certs:/etc/letsencrypt
-    - ./nginx/html:/usr/share/nginx/html
-    - ./certbot/startup.sh:/startup.sh  # <-- IMPORTANT new mount!
-  entrypoint: ["/bin/sh", "/startup.sh"]
-  environment:
-    - DOMAIN=${DOMAIN}
-    - SMTP_TO=${SMTP_TO}
-  depends_on:
-    - nginx
-  restart: unless-stopped
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/html:/usr/share/nginx/html
+      - ./certbot/startup.sh:/startup.sh  # <-- IMPORTANT new mount!
+
+    entrypoint: ["/bin/sh", "/startup.sh"]
+    environment:
+      - DOMAIN=${DOMAIN}
+      - SMTP_TO=${SMTP_TO}
+    depends_on:
+      - nginx
+    restart: unless-stopped
 
 volumes:
   sshkeys_data:

@@ -4,11 +4,6 @@ from datetime import datetime, timedelta
 from models.models import get_db_connection, log_admin_action
 
 
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
 def generate_reset_token(admin_id):
     token = secrets.token_urlsafe(32)
     expires_at = datetime.utcnow() + timedelta(hours=1)

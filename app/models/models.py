@@ -20,6 +20,15 @@ def column_exists(conn, table_name, column_name):
     columns = [row["name"] for row in cursor.fetchall()]
     return column_name in columns
 
+def log_login_attempt(username, ip_address, success):
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO login_attempts (username, ip_address, success)
+        VALUES (?, ?, ?)
+    ''', (username, ip_address, success))
+    conn.commit()
+    conn.close()
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -105,6 +114,17 @@ def init_db():
             expiration DATETIME NOT NULL
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS login_attempts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT,
+            ip_address TEXT,
+            success BOOLEAN,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+
 
     # ====== SMART COLUMN ADDITIONS HERE ======
 

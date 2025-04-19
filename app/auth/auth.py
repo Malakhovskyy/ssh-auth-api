@@ -1,21 +1,32 @@
 from fastapi import Request, HTTPException
 from starlette.responses import RedirectResponse
 from hashlib import md5
-from models.models import get_db_connection  # Correct import!
+from models.models import get_db_connection, log_login_attempt  # Correct import!
 
 def hash_password(password, salt):
     # FIXED: correct hashing order: password first, salt second
     return md5((password + salt).encode('utf-8')).hexdigest()
 
-def authenticate_admin(username: str, password: str):
+def authenticate_admin(username: str, password: str, ip_address: str):
     conn = get_db_connection()
     admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
     conn.close()
-    if admin:
-        hashed = hash_password(password, admin['salt'])
-        if hashed == admin['password_md5salted']:
-            return admin
-    return None
+
+    if not admin:
+        log_login_attempt(username, ip_address, success=0)
+        return None
+
+    if not admin['enabled']:
+        log_login_attempt(username, ip_address, success=0)
+        return None
+
+    hashed = hash_password(password, admin['salt'])
+    if hashed == admin['password_md5salted']:
+        log_login_attempt(username, ip_address, success=1)
+        return admin
+    else:
+        log_login_attempt(username, ip_address, success=0)
+        return None
 
 def get_current_admin_user(request: Request):
     if "admin_user" not in request.session:

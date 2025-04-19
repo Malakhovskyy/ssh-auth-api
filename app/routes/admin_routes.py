@@ -97,3 +97,78 @@ async def change_password(request: Request,
     return RedirectResponse(url="/admin/login", status_code=303)
 
 # Additional admin routes (for managing users, servers, keys) can be added here...
+
+# --- ADD ADMIN (LIST) ---
+
+@admin_router.get("/admin/admins", response_class=HTMLResponse)
+async def admins_page(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    admins = conn.execute('SELECT * FROM admins').fetchall()
+    conn.close()
+    return templates.TemplateResponse("admin_list.html", {"request": request, "admins": admins})
+
+# --- ADD ADMIN (GET + POST) ---
+
+@admin_router.get("/admin/admins/add", response_class=HTMLResponse)
+async def add_admin_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("admin_add.html", {"request": request})
+
+@admin_router.post("/admin/admins/add")
+async def add_admin(request: Request, username: str = Form(...), password: str = Form(...), email: str = Form(...)):
+    salt = generate_salt()
+    password_hash = hash_password(password, salt)
+
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
+        VALUES (?, ?, ?, ?, 1, 1)
+    ''', (username, email, password_hash, salt))
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(url="/admin/admins", status_code=303)
+
+# --- EDIT ADMIN (GET + POST) ---
+
+@admin_router.get("/admin/admins/edit/{admin_id}", response_class=HTMLResponse)
+async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    conn.close()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin})
+
+@admin_router.post("/admin/admins/edit/{admin_id}")
+async def edit_admin(admin_id: int, request: Request, email: str = Form(...), password: str = Form(None), enabled: int = Form(...)):
+    conn = get_db_connection()
+
+    if password:  # If new password provided, update password + salt
+        salt = generate_salt()
+        password_hash = hash_password(password, salt)
+        conn.execute('''
+            UPDATE admins
+            SET email = ?, password_md5salted = ?, salt = ?, enabled = ?
+            WHERE id = ?
+        ''', (email, password_hash, salt, enabled, admin_id))
+    else:  # Only update email and enabled status
+        conn.execute('''
+            UPDATE admins
+            SET email = ?, enabled = ?
+            WHERE id = ?
+        ''', (email, enabled, admin_id))
+
+    conn.commit()
+    conn.close()
+
+    return RedirectResponse(url="/admin/admins", status_code=303)
+
+# --- DELETE ADMIN ---
+
+@admin_router.get("/admin/admins/delete/{admin_id}")
+async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/admin/admins", status_code=303)

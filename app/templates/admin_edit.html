@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Admin - SSH Key Manager</title>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="content-container">
+        <h2>Edit Admin: {{ admin["admin_username"] }}</h2>
+
+        <form method="post">
+            <input type="email" name="email" value="{{ admin['email'] }}" placeholder="Email" required><br><br>
+            <input type="password" name="password" placeholder="New Password (leave empty to keep current)"><br><br>
+            
+            <label>Enabled:</label><br>
+            <select name="enabled">
+                <option value="1" {% if admin['enabled'] %}selected{% endif %}>Yes</option>
+                <option value="0" {% if not admin['enabled'] %}selected{% endif %}>No</option>
+            </select><br><br>
+
+            <button type="submit">Update Admin</button>
+        </form>
+
+        <br>
+        <a href="/admin/admins">← Back to Admin List</a>
+    </div>
+</body>
+</html>

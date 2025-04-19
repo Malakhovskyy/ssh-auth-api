@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add Admin - SSH Key Manager</title>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="content-container">
+        <h2>Add New Admin</h2>
+
+        <form method="post">
+            <input type="text" name="username" placeholder="Username" required><br><br>
+            <input type="password" name="password" placeholder="Password" required><br><br>
+            <input type="email" name="email" placeholder="Email" required><br><br>
+
+            <button type="submit">Create Admin</button>
+        </form>
+
+        <br>
+        <a href="/admin/admins">← Back to Admin List</a>
+    </div>
+</body>
+</html>

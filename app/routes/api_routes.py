@@ -45,3 +45,4 @@ def log_api_access(server, username, client_ip, status):
                  (server, username, f"{status} from {client_ip}"))
     conn.commit()
     conn.close()
+

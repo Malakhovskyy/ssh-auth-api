@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Manage Admins - SSH Key Manager</title>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="content-container">
+        <h2>Manage Admins</h2>
+
+        <a href="/admin/admins/add">+ Add New Admin</a><br><br>
+
+        <table border="1" cellpadding="8">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Enabled</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for admin in admins %}
+                <tr>
+                    <td>{{ admin["id"] }}</td>
+                    <td>{{ admin["admin_username"] }}</td>
+                    <td>{{ admin["email"] }}</td>
+                    <td>{{ "Yes" if admin["enabled"] else "No" }}</td>
+                    <td>
+                        <a href="/admin/admins/edit/{{ admin['id'] }}">Edit</a> |
+                        <a href="/admin/admins/delete/{{ admin['id'] }}">Delete</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <br>
+        <a href="/admin/dashboard">← Back to Dashboard</a>
+    </div>
+</body>
+</html>

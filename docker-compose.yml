@@ -44,7 +44,6 @@ services:
       - ./nginx/certs:/etc/letsencrypt
       - ./nginx/html:/usr/share/nginx/html
       - ./certbot/startup.sh:/startup.sh  # <-- IMPORTANT new mount!
-
     entrypoint: ["/bin/sh", "/startup.sh"]
     environment:
       - DOMAIN=${DOMAIN}

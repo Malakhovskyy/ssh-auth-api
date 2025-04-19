@@ -1,8 +1,8 @@
 import secrets
 import sqlite3
 from datetime import datetime, timedelta
+from models.models import get_db_connection, log_admin_action
 
-DB_PATH = "sshkeys.db"
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)

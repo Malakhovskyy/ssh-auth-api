@@ -26,7 +26,8 @@ async def login_page(request: Request):
 
 @admin_router.post("/admin/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
-    admin = authenticate_admin(username, password)
+    ip_address = request.client.host
+    admin = authenticate_admin(username, password, ip_address)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
     request.session["admin_user"] = admin["admin_username"]

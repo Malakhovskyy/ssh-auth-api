@@ -261,3 +261,11 @@ async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_
     )
 
     return RedirectResponse(url="/admin/admins", status_code=303)
+
+# --- ADMIN LOGS ---
+@admin_router.get("/admin/logs", response_class=HTMLResponse)
+async def view_admin_logs(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    logs = conn.execute('SELECT * FROM admin_logs ORDER BY timestamp DESC').fetchall()
+    conn.close()
+    return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": logs})

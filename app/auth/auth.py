@@ -1,15 +1,7 @@
 from fastapi import Request, HTTPException
 from starlette.responses import RedirectResponse
 from hashlib import md5
-import os
-import sqlite3
-
-DB_PATH = "sshkeys.db"
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+from models.models import get_db_connection  # <-- important!
 
 def hash_password(password, salt):
     return md5((salt + password).encode('utf-8')).hexdigest()

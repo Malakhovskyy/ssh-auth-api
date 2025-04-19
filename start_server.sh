@@ -25,6 +25,10 @@ done
 
 chmod +x certbot/startup.sh
 chmod +x ngnix/startup.sh
+chmod 777 ngnix/certs
+chmod 777 ngnix/html
+chmod 777 data
+
 
 echo "[Prepare] Startup scripts ready. Starting Docker Compose..."
 docker-compose up -d --force-recreate

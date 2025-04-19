@@ -1,12 +1,10 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
-from models.models import init_db, get_db_connection
+from auth.auth import authenticate_admin, get_current_admin_user, logout_admin, hash_password
+from models.models import init_db, get_db_connection, generate_salt
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
-from hashlib import md5
-import secrets
 import os
 from datetime import datetime, timedelta
 
@@ -57,19 +55,37 @@ async def change_password_page(request: Request):
 @admin_router.post("/admin/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...)):
     username = request.session.get("admin_user")
-    admin = authenticate_admin(username, old_password)
+    if not username:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db_connection()
+    admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
+
     if not admin:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Admin not found.")
+
+    # Check old password
+    if hash_password(old_password, admin['salt']) != admin['password_md5salted']:
+        conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
 
-    # Update password
-    salt = secrets.token_hex(8)
-    new_hash = md5((salt + new_password).encode('utf-8')).hexdigest()
-    conn = get_db_connection()
-    conn.execute('UPDATE admins SET password_md5salted = ?, salt = ?, must_change_password = 0 WHERE admin_username = ?', (new_hash, salt, username))
+    # Update to new password
+    new_salt = generate_salt()
+    new_hash = hash_password(new_password, new_salt)
+
+    conn.execute('''
+        UPDATE admins
+        SET password_md5salted = ?, salt = ?, must_change_password = 0
+        WHERE admin_username = ?
+    ''', (new_hash, new_salt, username))
+
     conn.commit()
     conn.close()
+
     log_admin_action(username, "Changed password")
 
-    return RedirectResponse(url="/admin/dashboard", status_code=303)
+    request.session.pop("admin_user", None)  # Force re-login
+    return RedirectResponse(url="/admin/login", status_code=303)
 
-# Add more admin pages (manage users, keys, servers) in following parts...
+# Additional admin routes (for managing users, servers, keys) can be added here...

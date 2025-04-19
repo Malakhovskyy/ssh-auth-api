@@ -4,11 +4,8 @@ import hashlib
 import random
 import string
 
-# Always use absolute path
 DB_DIR = os.getenv("DB_DIR", "/app/data")
-DB_PATH = os.path.abspath(os.path.join(DB_DIR, "sshkeys.db"))
-
-print(f"[DEBUG] Using database path: {DB_PATH}")
+DB_PATH = os.path.join(DB_DIR, "sshkeys.db")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)
@@ -18,11 +15,16 @@ def get_db_connection():
 def generate_salt(length=8):
     return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
+def column_exists(conn, table_name, column_name):
+    cursor = conn.execute(f"PRAGMA table_info({table_name})")
+    columns = [row["name"] for row in cursor.fetchall()]
+    return column_name in columns
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Create tables
+    # Create tables if they don't exist
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS admins (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -90,7 +92,7 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS allowed_api_sources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_type TEXT NOT NULL, -- CIDR or ASN
+            source_type TEXT NOT NULL,
             source_value TEXT NOT NULL
         )
     ''')
@@ -104,7 +106,15 @@ def init_db():
         )
     ''')
 
-    # After tables created, insert default admin if needed
+    # ====== SMART COLUMN ADDITIONS HERE ======
+
+    # Admins table must have 'enabled' column
+    if not column_exists(conn, "admins", "enabled"):
+        print("[DB INIT] Adding missing 'enabled' column to admins...")
+        conn.execute('ALTER TABLE admins ADD COLUMN enabled BOOLEAN DEFAULT 1')
+
+    # ====== CREATE DEFAULT ADMIN IF NONE EXIST ======
+
     cursor.execute('SELECT COUNT(*) as count FROM admins')
     count = cursor.fetchone()["count"]
 
@@ -118,8 +128,8 @@ def init_db():
         password_hash = hashlib.md5((default_password + salt).encode('utf-8')).hexdigest()
 
         cursor.execute('''
-            INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password)
-            VALUES (?, ?, ?, ?, 1)
+            INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
+            VALUES (?, ?, ?, ?, 1, 1)
         ''', (default_username, default_email, password_hash, salt))
 
         print(f"[INIT_DB] Default admin created: username=admin password=admin123 (you must change password on first login!)")

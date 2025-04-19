@@ -25,14 +25,15 @@ async def login(request: Request, username: str = Form(...), password: str = For
         ip_address = x_forwarded_for.split(',')[0].strip()
     else:
         ip_address = request.client.host
-
-    admin = authenticate_admin(username, password, ip_address)
+    # ✅ Only pass username and password!
+    admin = authenticate_admin(username, password)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
-        request.session["admin_user"] = admin["admin_username"]
+    request.session["admin_user"] = admin["admin_username"]
     if admin["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
     return RedirectResponse(url="/admin/dashboard", status_code=303)
+
 
 @admin_router.get("/admin/logout")
 async def logout(request: Request):

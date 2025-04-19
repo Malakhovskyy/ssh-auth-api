@@ -11,4 +11,3 @@ apscheduler
 httpx
 itsdangerous
 cryptography
-sqlite3

@@ -1,10 +1,11 @@
 from fastapi import Request, HTTPException
 from starlette.responses import RedirectResponse
 from hashlib import md5
-from models.models import get_db_connection  # <-- important!
+from models.models import get_db_connection  # Correct import!
 
 def hash_password(password, salt):
-    return md5((salt + password).encode('utf-8')).hexdigest()
+    # FIXED: correct hashing order: password first, salt second
+    return md5((password + salt).encode('utf-8')).hexdigest()
 
 def authenticate_admin(username: str, password: str):
     conn = get_db_connection()

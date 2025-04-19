@@ -6,6 +6,10 @@ from starlette.middleware.sessions import SessionMiddleware
 import os
 from dotenv import load_dotenv
 
+# Add small wait before full startup
+print("[DEBUG] Waiting 2 seconds for DB mount...")
+time.sleep(2)
+
 from auth.auth import get_current_admin_user, authenticate_admin, logout_admin
 from routes.admin_routes import admin_router
 from routes.api_routes import api_router

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+#
 # Load DOMAIN variable from .env
 export $(grep DOMAIN .env | xargs)
 export $(grep SMTP_TO .env | xargs)

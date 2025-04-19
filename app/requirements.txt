@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+python-multipart
+jinja2
+sqlalchemy
+passlib
+python-dotenv
+aiofiles
+email-validator
+apscheduler
+httpx
+cryptography

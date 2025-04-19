@@ -24,9 +24,9 @@ do
 done
 
 chmod +x certbot/startup.sh
-chmod +x ngnix/startup.sh
-chmod 777 ngnix/certs
-chmod 777 ngnix/html
+chmod +x nginx/startup.sh
+chmod 777 nginx/certs
+chmod 777 nginx/html
 chmod 777 data
 
 

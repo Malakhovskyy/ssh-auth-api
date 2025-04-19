@@ -53,7 +53,10 @@ async def change_password_page(request: Request):
     return templates.TemplateResponse("change_password.html", {"request": request})
 
 @admin_router.post("/admin/change-password")
-async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...)):
+async def change_password(request: Request, 
+                           old_password: str = Form(...), 
+                           new_password: str = Form(...), 
+                           confirm_password: str = Form(...)):
     username = request.session.get("admin_user")
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
@@ -70,6 +73,11 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
 
+    # Check new password confirmation
+    if new_password != confirm_password:
+        conn.close()
+        return templates.TemplateResponse("change_password.html", {"request": request, "error": "New passwords do not match"})
+
     # Update to new password
     new_salt = generate_salt()
     new_hash = hash_password(new_password, new_salt)
@@ -85,7 +93,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
 
     log_admin_action(username, "Changed password")
 
-    request.session.pop("admin_user", None)  # Force re-login
+    request.session.pop("admin_user", None)
     return RedirectResponse(url="/admin/login", status_code=303)
 
 # Additional admin routes (for managing users, servers, keys) can be added here...

@@ -9,4 +9,5 @@ aiofiles
 email-validator
 apscheduler
 httpx
-cryptography
+itsdangerous
+cyptography

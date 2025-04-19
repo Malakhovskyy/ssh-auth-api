@@ -13,12 +13,6 @@ admin_router = APIRouter()
 
 init_db()  # Ensure DB initialized
 
-# Helper: log admin actions
-def log_admin_action(username, action):
-    conn = get_db_connection()
-    conn.execute('INSERT INTO admin_logs (admin_username, action) VALUES (?, ?)', (username, action))
-    conn.commit()
-    conn.close()
 
 @admin_router.get("/admin/login", response_class=HTMLResponse)
 async def login_page(request: Request):

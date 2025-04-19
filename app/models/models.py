@@ -1,6 +1,8 @@
 import sqlite3
+import os
 
-DB_PATH = "sshkeys.db"
+DB_PATH = os.path.join(os.path.dirname(__file__), "../../sshkeys.db")
+DB_PATH = os.path.abspath(DB_PATH)
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)

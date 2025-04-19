@@ -31,4 +31,4 @@ chmod 777 data
 
 
 echo "[Prepare] Startup scripts ready. Starting Docker Compose..."
-docker-compose up -d --force-recreate
+docker compose up -d --force-recreate

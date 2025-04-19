@@ -18,7 +18,7 @@ fi
 echo "[Prepare] Using domain: $DOMAIN"
 
 # Replace $DOMAIN inside nginx conf files
-for file in nginx/conf.d/*.conf
+for file in nginx/tpl/*.conf
 do
   echo "[Prepare] Processing $file..."
   sed -i "s|\$DOMAIN|$DOMAIN|g" "$file"

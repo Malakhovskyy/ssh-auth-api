@@ -141,32 +141,59 @@ async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(g
     return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin})
 
 @admin_router.post("/admin/admins/edit/{admin_id}")
-async def edit_admin(admin_id: int, request: Request, email: str = Form(...), password: str = Form(None), enabled: int = Form(...)):
+async def edit_admin(
+    admin_id: int,
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(None),
+    confirm_password: str = Form(None),
+    enabled: int = Form(...),
+    force_password_change: int = Form(0)
+):
     conn = get_db_connection()
 
-    if password:  # If new password provided, update password + salt
+    if password:  # If new password provided, verify and update
+        if password != confirm_password:
+            conn.close()
+            return templates.TemplateResponse(
+                "admin_edit.html", 
+                {"request": request, "admin": {"id": admin_id, "admin_username": "", "email": email, "enabled": enabled}, "error": "Passwords do not match"}
+            )
+
         salt = generate_salt()
         password_hash = hash_password(password, salt)
+
         conn.execute('''
             UPDATE admins
-            SET email = ?, password_md5salted = ?, salt = ?, enabled = ?
+            SET email = ?, password_md5salted = ?, salt = ?, enabled = ?, must_change_password = ?
             WHERE id = ?
-        ''', (email, password_hash, salt, enabled, admin_id))
-    else:  # Only update email and enabled status
+        ''', (email, password_hash, salt, enabled, force_password_change, admin_id))
+    else:  # Only update email and enabled/must_change_password
         conn.execute('''
             UPDATE admins
-            SET email = ?, enabled = ?
+            SET email = ?, enabled = ?, must_change_password = ?
             WHERE id = ?
-        ''', (email, enabled, admin_id))
+        ''', (email, enabled, force_password_change, admin_id))
 
     conn.commit()
     conn.close()
 
     return RedirectResponse(url="/admin/admins", status_code=303)
 
-# --- DELETE ADMIN ---
+# --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
 
-@admin_router.get("/admin/admins/delete/{admin_id}")
+@admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)
+async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    conn.close()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return templates.TemplateResponse("admin_delete_confirm.html", {"request": request, "admin": admin})
+
+# --- DELETE ADMIN (AFTER CONFIRM) ---
+
+@admin_router.post("/admin/admins/delete/{admin_id}")
 async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
     conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))

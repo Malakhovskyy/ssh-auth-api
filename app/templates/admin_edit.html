@@ -11,13 +11,21 @@
 
         <form method="post">
             <input type="email" name="email" value="{{ admin['email'] }}" placeholder="Email" required><br><br>
+
             <input type="password" name="password" placeholder="New Password (leave empty to keep current)"><br><br>
-            
+
+            <input type="password" name="confirm_password" placeholder="Confirm New Password (leave empty to keep current)"><br><br>
+
             <label>Enabled:</label><br>
             <select name="enabled">
                 <option value="1" {% if admin['enabled'] %}selected{% endif %}>Yes</option>
                 <option value="0" {% if not admin['enabled'] %}selected{% endif %}>No</option>
             </select><br><br>
+
+            <label>
+                <input type="checkbox" name="force_password_change" value="1">
+                Force password change on next login
+            </label><br><br>
 
             <button type="submit">Update Admin</button>
         </form>

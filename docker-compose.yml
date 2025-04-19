@@ -37,6 +37,17 @@ services:
       - ssh-key-manager
     restart: unless-stopped
 
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt
+      - ./nginx/html:/usr/share/nginx/html
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h; done'"
+    depends_on:
+      - nginx
+    restart: unless-stopped
+
 volumes:
   sshkeys_data:
     driver: local

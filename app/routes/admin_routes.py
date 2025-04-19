@@ -25,8 +25,8 @@ async def login(request: Request, username: str = Form(...), password: str = For
         ip_address = x_forwarded_for.split(',')[0].strip()
     else:
         ip_address = request.client.host
-    # ✅ Only pass username and password!
-    admin = authenticate_admin(username, password)
+    # ✅ Correct: pass username, password, ip_address
+    admin = authenticate_admin(username, password, ip_address)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
     request.session["admin_user"] = admin["admin_username"]

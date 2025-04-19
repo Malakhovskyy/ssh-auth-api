@@ -29,6 +29,15 @@ def log_login_attempt(username, ip_address, success):
     conn.commit()
     conn.close()
 
+def log_admin_action(username, action, object_modified=None):
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO admin_logs (admin_username, action, object_modified)
+        VALUES (?, ?, ?)
+    ''', (username, action, object_modified))
+    conn.commit()
+    conn.close()
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()

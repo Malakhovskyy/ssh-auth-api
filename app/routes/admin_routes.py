@@ -138,7 +138,7 @@ async def add_admin(
     ''', (username, email, password_hash, salt))
     conn.commit()
     conn.close()
-
+    log_admin_action(request.session.get("admin_user"), f"Created new admin", object_modified=username)
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 # --- EDIT ADMIN (GET + POST) ---
@@ -189,7 +189,7 @@ async def edit_admin(
 
     conn.commit()
     conn.close()
-
+    log_admin_action(request.session.get("admin_user"), f"Created new admin", object_modified=username)
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 # --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
@@ -211,4 +211,5 @@ async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_
     conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))
     conn.commit()
     conn.close()
+    log_admin_action(request.session.get("admin_user"), f"Created new admin", object_modified=username)
     return RedirectResponse(url="/admin/admins", status_code=303)

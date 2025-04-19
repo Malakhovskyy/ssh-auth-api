@@ -7,7 +7,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - sshkeys_data:/app/sshkeys.db
+      - ./data:/app/data     # <--- this mounts a writable folder
       - ./backups:/app/backups
     environment:
       - SMTP_SERVER=${SMTP_SERVER}

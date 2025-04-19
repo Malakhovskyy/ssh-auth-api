@@ -1,24 +1,26 @@
 import sqlite3
 import os
+import hashlib
+import random
+import string
 
-DB_DIR = os.getenv("DB_DIR", "/app/data")  # always absolute inside container
+DB_DIR = os.getenv("DB_DIR", "/app/data")  # Use absolute path inside container
 DB_PATH = os.path.join(DB_DIR, "sshkeys.db")
 
-print(f"Using database file at: {DB_PATH}")
-
 def get_db_connection():
-    if not os.path.exists(DB_DIR):
-        os.makedirs(DB_DIR, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
-    
+
+def generate_salt(length=8):
+    return ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
 def init_db():
     conn = get_db_connection()
-    c = conn.cursor()
+    cursor = conn.cursor()
 
-    # Admins table
-    c.execute('''
+    # Create tables
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS admins (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             admin_username TEXT UNIQUE NOT NULL,
@@ -29,34 +31,21 @@ def init_db():
         )
     ''')
 
-    # Users table
-    c.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE NOT NULL
         )
     ''')
 
-    # SSH Keys table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS ssh_keys (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            ssh_key TEXT,
-            FOREIGN KEY(user_id) REFERENCES users(id)
-        )
-    ''')
-
-    # Servers table
-    c.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS servers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             server_name TEXT UNIQUE NOT NULL
         )
     ''')
 
-    # Assignments table
-    c.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS assignments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
@@ -66,47 +55,71 @@ def init_db():
         )
     ''')
 
-    # Admin logs table
-    c.execute('''
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS ssh_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            ssh_key TEXT NOT NULL,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    ''')
+
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS admin_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_username TEXT,
-            action TEXT,
+            admin_username TEXT NOT NULL,
+            action TEXT NOT NULL,
+            object_modified TEXT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # API access logs
-    c.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS api_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            server_name TEXT,
             username TEXT,
-            status TEXT,
+            server_name TEXT,
+            success BOOLEAN,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
 
-    # Allowed API sources (IP, CIDR, ASN)
-    c.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS allowed_api_sources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_type TEXT,
-            value TEXT,
-            description TEXT
+            source_type TEXT NOT NULL, -- CIDR or ASN
+            source_value TEXT NOT NULL
         )
     ''')
 
-    # Password reset tokens
-    c.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS reset_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_id INTEGER,
-            token TEXT,
-            expires_at DATETIME,
-            FOREIGN KEY(admin_id) REFERENCES admins(id)
+            admin_username TEXT NOT NULL,
+            token TEXT NOT NULL,
+            expiration DATETIME NOT NULL
         )
     ''')
+
+    # After tables created, insert default admin if needed
+    cursor.execute('SELECT COUNT(*) as count FROM admins')
+    count = cursor.fetchone()["count"]
+
+    if count == 0:
+        print("[INIT_DB] No admin found. Creating default super admin...")
+
+        default_username = "admin"
+        default_email = "admin@example.com"
+        default_password = "admin123"
+        salt = generate_salt(8)
+        password_hash = hashlib.md5((default_password + salt).encode('utf-8')).hexdigest()
+
+        cursor.execute('''
+            INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password)
+            VALUES (?, ?, ?, ?, 1)
+        ''', (default_username, default_email, password_hash, salt))
+
+        print(f"[INIT_DB] Default admin created: username=admin password=admin123 (you must change password on first login!)")
 
     conn.commit()
     conn.close()

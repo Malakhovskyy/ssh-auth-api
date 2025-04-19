@@ -4,8 +4,11 @@ import hashlib
 import random
 import string
 
-DB_DIR = os.getenv("DB_DIR", "/app/data")  # Use absolute path inside container
-DB_PATH = os.path.join(DB_DIR, "sshkeys.db")
+# Always use absolute path
+DB_DIR = os.getenv("DB_DIR", "/app/data")
+DB_PATH = os.path.abspath(os.path.join(DB_DIR, "sshkeys.db"))
+
+print(f"[DEBUG] Using database path: {DB_PATH}")
 
 def get_db_connection():
     conn = sqlite3.connect(DB_PATH)

@@ -114,13 +114,13 @@ def init_db():
             source_value TEXT NOT NULL
         )
     ''')
-
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reset_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_username TEXT NOT NULL,
-            token TEXT NOT NULL,
-            expiration DATETIME NOT NULL
+            admin_id INTEGER NOT NULL,
+            token TEXT UNIQUE NOT NULL,
+            expires_at DATETIME NOT NULL,
+            FOREIGN KEY (admin_id) REFERENCES admins(id)
         )
     ''')
     cursor.execute('''

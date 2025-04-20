@@ -44,24 +44,29 @@ flatpickr("#expiration_date", {
     dateFormat: "Y-m-d H:i:S",
 });
 
-// Set default expiration date to 1 year from now
 const expirationInput = document.getElementById('expiration_date');
-const today = new Date();
-const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
-expirationInput.value = nextYear.toISOString().slice(0, 19).replace('T', ' ');
+const neverExpiresCheckbox = document.getElementById('never_expires');
 
-// Auto-disable expiration date if Never Expires is checked
-document.getElementById('never_expires').addEventListener('change', function() {
-    if (this.checked) {
+// Function to update expiration field state
+function updateExpirationField() {
+    if (neverExpiresCheckbox.checked) {
         expirationInput.value = "2099-12-31 23:59:59";
         expirationInput.disabled = true;
         expirationInput.style.backgroundColor = "#f0f0f0"; // grey background
     } else {
+        const today = new Date();
+        const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
         expirationInput.disabled = false;
         expirationInput.style.backgroundColor = "white"; // normal background
         expirationInput.value = nextYear.toISOString().slice(0, 19).replace('T', ' ');
     }
-});
+}
+
+// Run on page load
+updateExpirationField();
+
+// Update when checkbox changes
+neverExpiresCheckbox.addEventListener('change', updateExpirationField);
 </script>
 
 <br><a href="/admin/ssh-users">← Back to SSH Users List</a>

@@ -2,7 +2,7 @@ import ipaddress
 import sqlite3
 import socket
 import time
-from models.models import get_db_connection,
+from models.models import get_db_connection
 
 asn_cache = {}
 

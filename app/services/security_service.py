@@ -25,6 +25,30 @@ async def update_admin_password(username: str, new_password: str, check_complexi
 
     return True, ""
 
+async def create_admin_with_password(username: str, password: str, email: str) -> (bool, str):
+    if get_setting('enforce_password_complexity') == '1':
+        valid, message = is_password_complex(password, username)
+        if not valid:
+            return False, message
+
+    salt = secrets.token_hex(8)
+    password_hash = encrypt_password(password, salt)
+
+    conn = get_db_connection()
+
+    try:
+        conn.execute('''
+            INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
+            VALUES (?, ?, ?, ?, 1, 1)
+        ''', (username, email, password_hash, salt))
+        conn.commit()
+        conn.close()
+        return True, ""
+    except Exception as e:
+        conn.close()
+        return False, str(e)
+
+
 
 async def verify_admin_password(admin_row, plain_password: str) -> bool:
     expected_hash = encrypt_password(plain_password, admin_row['salt'])

@@ -6,6 +6,7 @@ from models.models import init_db, get_db_connection, log_admin_action, get_sett
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 from services.security_service import update_admin_password, verify_admin_password
+from services.security_service import create_admin_with_password
 
 init_db()  # Ensure DB initialized
 
@@ -73,7 +74,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
 
     conn.close()
 
-    success, error = await update_admin_password(username, new_password)
+    success, error = await create_admin_with_password(username, password, email)
     if not success:
         return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
     

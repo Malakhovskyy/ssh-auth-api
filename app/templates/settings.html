@@ -42,7 +42,7 @@
         </div>
 
         <label>
-            <input type="checkbox" name="restrict_admin_ip">
+            <input type="checkbox" name="restrict_admin_ip" {% if settings.restrict_admin_ip == '1' %}checked{% endif %}>
             Restrict Admin Interface Access by IP/ASN
         </label><br><br>
         <div id="admin-ip-list"></div>

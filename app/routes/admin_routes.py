@@ -7,6 +7,7 @@ from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 from services.security_service import update_admin_password, verify_admin_password
 from services.security_service import create_admin_with_password
+from services.encryption_service import encrypt_sensitive_value
 
 init_db()  # Ensure DB initialized
 
@@ -172,10 +173,12 @@ async def update_settings(
     set_setting('smtp_port', smtp_port)
     set_setting('smtp_user', smtp_user)
 
-    # ✅ Encrypt SMTP password before saving
-    encrypted_smtp_password = encrypt_password(smtp_password)
+    # ✅ Correct encryption function
+    encrypted_smtp_password = encrypt_sensitive_value(smtp_password)
     set_setting('smtp_password', encrypted_smtp_password)
+
     set_setting('smtp_from', smtp_from)
+
     return RedirectResponse(url="/admin/settings", status_code=303)
 
 

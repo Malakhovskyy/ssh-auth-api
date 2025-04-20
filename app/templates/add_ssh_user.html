@@ -45,9 +45,9 @@ document.getElementById('never_expires').addEventListener('change', function() {
     const expirationInput = document.getElementById('expiration_date');
     if (this.checked) {
         expirationInput.value = "2099-12-31 23:59:59";
-        expirationInput.disabled = true;
+        expirationInput.readOnly = true;  // prevent typing but allow form submit
     } else {
-        expirationInput.disabled = false;
+        expirationInput.readOnly = false;
         expirationInput.value = "";
     }
 });

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Edit SSH Key - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Edit SSH Key: {{ key_data["key_name"] }}</h1>
+
+<form method="post" action="/admin/ssh-keys/edit/{{ key_data['id'] }}">
+
+    <label>SSH Key Name:</label><br>
+    <input type="text" name="key_name" class="input-standard" value="{{ key_data['key_name'] }}" required><br><br>
+
+    <label>Expiration Date:</label><br>
+    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" value="{{ key_data['expiration_date'] }}" required><br><br>
+
+    <label>
+        <input type="checkbox" id="never_expires" name="never_expires"
+        {% if key_data['expiration_date'] == '2099-12-31 23:59:59' %}checked{% endif %}>
+        Never Expires
+    </label><br><br>
+
+    <label>
+        <input type="checkbox" name="locked"
+        {% if key_data['locked'] == 1 %}checked{% endif %}>
+        Locked
+    </label><br><br>
+
+    <label>SSH Key Data:</label><br>
+    <textarea name="ssh_key_data" class="input-standard-textarea" rows="8" required>{{ decrypted_key_data }}</textarea><br><br>
+
+    <button type="submit">Save Changes</button>
+
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<script>
+// Flatpickr calendar + clock
+flatpickr("#expiration_date", {
+    enableTime: true,
+    dateFormat: "Y-m-d H:i:S",
+});
+
+// Handle Never Expires checkbox
+document.getElementById('never_expires').addEventListener('change', function() {
+    const expirationInput = document.getElementById('expiration_date');
+    if (this.checked) {
+        expirationInput.value = "2099-12-31 23:59:59";
+        expirationInput.readOnly = true;
+    } else {
+        expirationInput.readOnly = false;
+    }
+});
+
+// If page loads and Never Expires is already checked
+window.addEventListener('DOMContentLoaded', function() {
+    const expirationInput = document.getElementById('expiration_date');
+    if (document.getElementById('never_expires').checked) {
+        expirationInput.readOnly = true;
+    }
+});
+</script>
+
+<br><a href="/admin/ssh-keys">← Back to SSH Keys List</a>
+
+{% endblock %}

@@ -596,3 +596,29 @@ async def add_ssh_key(
     log_admin_action(request.session.get("admin_user"), "Created SSH key", key_name)
 
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+# -- EDIT SSH Key (POST form submit) --
+@admin_router.post("/admin/ssh-keys/edit/{key_id}")
+async def edit_ssh_key(
+    key_id: int,
+    request: Request,
+    key_name: str = Form(...),
+    expiration_date: str = Form(...),
+    never_expires: str = Form(None),
+    locked: str = Form(None),
+    ssh_key_data: str = Form(...),
+    user: str = Depends(get_current_admin_user)
+):
+    conn = get_db_connection()
+    if never_expires:
+        expiration_date = "2099-12-31 23:59:59"
+    is_locked = 1 if locked else 0
+    encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
+    conn.execute(
+        'UPDATE ssh_keys SET key_name = ?, expiration_date = ?, locked = ?, ssh_key_data = ? WHERE id = ?',
+        (key_name, expiration_date, is_locked, encrypted_key_data, key_id)
+    )
+    conn.commit()
+    conn.close()
+    log_admin_action(request.session.get("admin_user"), "Edited SSH key", key_name)
+    return RedirectResponse(url="/admin/ssh-keys", status_code=303)

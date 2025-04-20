@@ -7,7 +7,9 @@ api_router = APIRouter()
 
 @api_router.get("/ssh-keys/{server}/{username}")
 async def get_ssh_key(server: str, username: str, request: Request):
-    client_ip = request.client.host
+    client_ip = request.headers.get("x-forwarded-for")
+    if not client_ip:
+        client_ip = request.client.host
 
     if not is_ip_allowed(client_ip):
         log_api_access(server, username, client_ip, "BLOCKED", "IP not allowed")

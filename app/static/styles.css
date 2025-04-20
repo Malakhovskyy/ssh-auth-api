@@ -81,6 +81,7 @@ form {
     margin-top: 20px;
 }
 
+/* Forms - general inputs default full width */
 input[type="text"],
 input[type="password"],
 input[type="email"] {
@@ -90,6 +91,12 @@ input[type="email"] {
     border: 1px solid #ccc;
     border-radius: 6px;
     box-sizing: border-box;
+}
+
+/* Forms - special inputs with fixed width */
+.input-standard {
+    width: 400px !important; /* force it */
+    max-width: 100%;
 }
 
 /* Buttons */
@@ -153,12 +160,4 @@ table tr:hover {
     margin-bottom: 30px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.input-standard {
-    width: 100px;
-    padding: 10px;
-    margin-top: 5px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
 }

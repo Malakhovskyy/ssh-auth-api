@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Server - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Edit Server: {{ server["server_name"] }}</h1>
+
+<form method="post" action="/admin/servers/edit/{{ server['id'] }}">
+
+    <label>Server Name:</label><br>
+    <input type="text" name="server_name" class="input-standard" required value="{{ server['server_name'] }}"><br><br>
+
+    <button type="submit">Save Changes</button>
+
+</form>
+
+<br><a href="/admin/servers">← Back to Servers List</a>
+
+{% endblock %}

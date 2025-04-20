@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Servers - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Manage Servers</h1>
+
+<a href="/admin/servers/add"><button style="margin-bottom: 20px;">➕ Add Server</button></a>
+
+<table id="serversTable">
+    <thead>
+        <tr>
+            <th>Server Name</th>
+            <th>Assigned Users</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for server in servers %}
+        <tr>
+            <td>{{ server["server_name"] }}</td>
+            <td>
+                {% if server["assigned_users"] %}
+                    {% for user in server["assigned_users"] %}
+                        <div style="margin-bottom: 5px;">
+                            {{ user["username"] }} ({{ user["key_name"] }})
+                            <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
+                                <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
+                            </form>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    No users assigned
+                {% endif %}
+            </td>
+            <td>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <a href="/admin/servers/edit/{{ server['id'] }}" style="text-decoration: none;">✏️ Edit</a>
+
+                    <form method="post" action="/admin/servers/delete/{{ server['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
+                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
+                    </form>
+
+                    <a href="/admin/servers/assign-user/{{ server['id'] }}" style="text-decoration: none; color: green;">➕ Assign User</a>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+function confirmDelete() {
+    return confirm("Are you sure you want to delete this server?");
+}
+function confirmUnassign() {
+    return confirm("Are you sure you want to unassign this user from the server?");
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Assign User to Server - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Assign User to Server: {{ server["server_name"] }}</h1>
+
+<form method="post" action="/admin/servers/assign-user/{{ server['id'] }}">
+
+    <label>Select User:</label><br>
+    <select name="user_id" class="input-standard" required>
+        {% for user in users %}
+            <option value="{{ user['id'] }}">{{ user['username'] }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <label>Select SSH Key:</label><br>
+    <select name="ssh_key_id" class="input-standard" required>
+        {% for key in ssh_keys %}
+            <option value="{{ key['id'] }}">{{ key['key_name'] }}</option>
+        {% endfor %}
+    </select><br><br>
+
+    <button type="submit">Assign User</button>
+
+</form>
+
+<br><a href="/admin/servers">← Back to Servers List</a>
+
+{% endblock %}

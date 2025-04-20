@@ -179,6 +179,21 @@ def init_db():
         )
     ''')
 
+# Server Assignments table
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS server_assignments (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            server_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            ssh_key_id INTEGER NOT NULL,
+            FOREIGN KEY (server_id) REFERENCES servers(id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (ssh_key_id) REFERENCES ssh_keys(id)
+        )
+    ''')
+
+
+
     # ====== SMART COLUMN ADDITIONS HERE ======
 
     # Admins table must have 'enabled' column

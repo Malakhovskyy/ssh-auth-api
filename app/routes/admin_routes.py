@@ -714,3 +714,91 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
     log_admin_action(request.session.get("admin_user"), "Assigned SSH keys to user", f"UserID {user_id}")
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+#Server Manager key assign
+@admin_router.get("/admin/servers", response_class=HTMLResponse)
+async def servers_list(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    servers = conn.execute('SELECT * FROM servers').fetchall()
+    servers_data = []
+
+    for server in servers:
+        assigned_users = conn.execute('''
+            SELECT users.id as user_id, users.username, ssh_keys.key_name
+            FROM server_assignments
+            JOIN users ON server_assignments.user_id = users.id
+            JOIN ssh_keys ON server_assignments.ssh_key_id = ssh_keys.id
+            WHERE server_assignments.server_id = ?
+        ''', (server["id"],)).fetchall()
+
+        servers_data.append({
+            "id": server["id"],
+            "server_name": server["server_name"],
+            "assigned_users": assigned_users
+        })
+
+    conn.close()
+    return templates.TemplateResponse("servers.html", {"request": request, "servers": servers_data})
+
+@admin_router.get("/admin/servers/add", response_class=HTMLResponse)
+async def add_server_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_server.html", {"request": request})
+
+@admin_router.post("/admin/servers/add")
+async def add_server(request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    existing_server = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server_name,)).fetchone()
+    if existing_server:
+        conn.close()
+        return templates.TemplateResponse("add_server.html", {"request": request, "error": "Server name already exists."})
+
+    conn.execute('INSERT INTO servers (server_name) VALUES (?)', (server_name,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Created server", server_name)
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.get("/admin/servers/edit/{server_id}", response_class=HTMLResponse)
+async def edit_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    conn.close()
+
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    return templates.TemplateResponse("edit_server.html", {"request": request, "server": server})
+
+@admin_router.post("/admin/servers/edit/{server_id}")
+async def edit_server(server_id: int, request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    conn.execute('UPDATE servers SET server_name = ? WHERE id = ?', (server_name, server_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Edited server", server_name)
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.post("/admin/servers/delete/{server_id}")
+async def delete_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    if not server:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    conn.execute('DELETE FROM server_assignments WHERE server_id = ?', (server_id,))
+    conn.execute('DELETE FROM servers WHERE id = ?', (server_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Deleted server", server["server_name"])
+
+    return RedirectResponse(url="/admin/servers", status_code=303)

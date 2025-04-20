@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}Add Server - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Add Server</h1>
+
+{% if error %}
+    <div class="error">{{ error }}</div>
+{% endif %}
+
+<form method="post" action="/admin/servers/add">
+
+    <label>Server Name:</label><br>
+    <input type="text" name="server_name" class="input-standard" required><br><br>
+
+    <button type="submit">Create Server</button>
+
+</form>
+
+<br><a href="/admin/servers">← Back to Servers List</a>
+
+{% endblock %}

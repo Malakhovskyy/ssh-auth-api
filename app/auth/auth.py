@@ -1,11 +1,6 @@
 from fastapi import Request, HTTPException
 from starlette.responses import RedirectResponse
-from hashlib import md5
-from models.models import get_db_connection, log_login_attempt  # Correct import!
-
-def hash_password(password, salt):
-    # FIXED: correct hashing order: password first, salt second
-    return md5((password + salt).encode('utf-8')).hexdigest()
+from models.models import get_db_connection, log_login_attempt, encrypt_password
 
 def authenticate_admin(username: str, password: str, ip_address: str):
     conn = get_db_connection()
@@ -20,7 +15,7 @@ def authenticate_admin(username: str, password: str, ip_address: str):
         log_login_attempt(username, ip_address, success=0)
         return None
 
-    hashed = hash_password(password, admin['salt'])
+    hashed = encrypt_password(password, admin['salt'])
     if hashed == admin['password_md5salted']:
         log_login_attempt(username, ip_address, success=1)
         return admin

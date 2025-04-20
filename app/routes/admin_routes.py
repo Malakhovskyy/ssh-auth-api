@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin, hash_password
-from models.models import init_db, get_db_connection, generate_salt, log_admin_action
+from models.models import init_db, get_db_connection, generate_salt, log_admin_action, encrypt_password
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 import os
@@ -71,7 +71,7 @@ async def change_password(request: Request,
         raise HTTPException(status_code=400, detail="Admin not found.")
 
     # Check old password
-    if hash_password(old_password, admin['salt']) != admin['password_md5salted']:
+    if encrypt_password(old_password, admin['salt']) != admin['password_md5salted']:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
 
@@ -82,7 +82,7 @@ async def change_password(request: Request,
 
     # Update to new password
     new_salt = generate_salt()
-    new_hash = hash_password(new_password, new_salt)
+    new_hash = encrypt_password(new_password, new_salt)
 
     conn.execute('''
         UPDATE admins
@@ -151,7 +151,7 @@ async def add_admin(
         )
 
     salt = generate_salt()
-    password_hash = hash_password(password, salt)
+    password_hash = encrypt_password(password, salt)
 
     conn.execute('''
         INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
@@ -207,7 +207,7 @@ async def edit_admin(
             )
 
         salt = generate_salt()
-        password_hash = hash_password(password, salt)
+        password_hash = encrypt_password(password, salt)
 
         conn.execute('''
             UPDATE admins
@@ -340,7 +340,7 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
 
     salt = secrets.token_hex(8)
-    password_hash = md5((salt + new_password).encode('utf-8')).hexdigest()
+    password_hash = encrypt_password(new_password, salt)
 
     conn = get_db_connection()
     conn.execute('UPDATE admins SET password_md5salted = ?, salt = ?, must_change_password = 0 WHERE admin_username = ?', (password_hash, salt, username))

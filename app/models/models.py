@@ -38,6 +38,9 @@ def log_admin_action(username, action, object_modified=None):
     conn.commit()
     conn.close()
 
+def encrypt_password(password: str, salt: str) -> str:
+    return hashlib.md5((salt + password).encode('utf-8')).hexdigest()
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -154,7 +157,7 @@ def init_db():
         default_email = "admin@example.com"
         default_password = "admin123"
         salt = generate_salt(8)
-        password_hash = hashlib.md5((default_password + salt).encode('utf-8')).hexdigest()
+        password_hash = encrypt_password(default_password, salt)
 
         cursor.execute('''
             INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)

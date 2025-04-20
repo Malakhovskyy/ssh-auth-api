@@ -570,17 +570,44 @@ async def unlock_ssh_key(key_id: int, request: Request, user: str = Depends(get_
 @admin_router.post("/admin/ssh-keys/delete/{key_id}")
 async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
+
+    # Get key name
     row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
     if not row:
         conn.close()
         raise HTTPException(status_code=404, detail="SSH Key not found")
+
     key_name = row["key_name"]
+
+    # Fetch all users assigned to this key before deleting
+    assigned_users = conn.execute('''
+        SELECT users.username 
+        FROM assignments 
+        JOIN users ON assignments.user_id = users.id 
+        WHERE assignments.ssh_key_id = ?
+    ''', (key_id,)).fetchall()
+
+    usernames = [u["username"] for u in assigned_users]
+
     # First delete assignments
     conn.execute('DELETE FROM assignments WHERE ssh_key_id = ?', (key_id,))
     conn.execute('DELETE FROM ssh_keys WHERE id = ?', (key_id,))
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), "Deleted SSH key", key_name)
+
+    # Prepare log message
+    if usernames:
+        user_list = ", ".join(usernames)
+        modified_object = f"Deleted SSH Key '{key_name}' assigned to users: {user_list}"
+    else:
+        modified_object = f"Deleted SSH Key '{key_name}' (no users assigned)"
+
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Deleted SSH key",
+        modified_object
+    )
+
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Unassign User from SSH Key --

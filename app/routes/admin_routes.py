@@ -636,3 +636,47 @@ async def edit_ssh_key(
     conn.close()
     log_admin_action(request.session.get("admin_user"), "Edited SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+#SSH key assign
+@admin_router.get("/admin/assign-key/{user_id}", response_class=HTMLResponse)
+async def assign_key_page(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    user_row = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user_row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="User not found")
+
+    all_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+    assigned_keys = conn.execute('SELECT ssh_key_id FROM assignments WHERE user_id = ?', (user_id,)).fetchall()
+    assigned_key_ids = [row["ssh_key_id"] for row in assigned_keys]
+
+    conn.close()
+
+    return templates.TemplateResponse("assign_key_to_user.html", {
+        "request": request,
+        "user": user_row,
+        "ssh_keys": all_keys,
+        "assigned_key_ids": assigned_key_ids
+    })
+
+@admin_router.post("/admin/assign-key/{user_id}")
+async def assign_key_submit(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    form = await request.form()
+    selected_keys = form.getlist("ssh_keys")  # List of selected SSH key IDs
+
+    conn = get_db_connection()
+
+    # Remove all existing assignments first
+    conn.execute('DELETE FROM assignments WHERE user_id = ?', (user_id,))
+
+    # Add new assignments
+    for key_id in selected_keys:
+        conn.execute('INSERT INTO assignments (ssh_key_id, user_id) VALUES (?, ?)', (key_id, user_id))
+
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Assigned SSH keys to user", f"UserID {user_id}")
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)

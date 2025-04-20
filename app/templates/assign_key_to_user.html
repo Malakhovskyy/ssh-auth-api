@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Assign SSH Keys to {{ user["username"] }}{% endblock %}
+
+{% block content %}
+<h1>Assign SSH Keys to {{ user["username"] }}</h1>
+
+<form method="post" action="/admin/assign-key/{{ user['id'] }}">
+
+    <input type="text" id="searchInput" placeholder="Search SSH Keys..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+
+    <div id="sshKeysList" style="max-height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; border-radius: 8px;">
+        {% for key in ssh_keys %}
+            <div style="margin-bottom: 10px;">
+                <label>
+                    <input type="checkbox" name="ssh_keys" value="{{ key['id'] }}"
+                    {% if key['id'] in assigned_key_ids %}checked{% endif %}>
+                    {{ key['key_name'] }}
+                </label>
+            </div>
+        {% endfor %}
+    </div>
+
+    <br>
+    <button type="submit">Assign Selected Keys</button>
+
+</form>
+
+<script>
+// Simple real-time search
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let items = document.querySelectorAll('#sshKeysList div');
+    items.forEach(item => {
+        let text = item.innerText.toLowerCase();
+        item.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+
+<br><a href="/admin/ssh-users">← Back to SSH Users List</a>
+
+{% endblock %}

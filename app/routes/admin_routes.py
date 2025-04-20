@@ -437,7 +437,7 @@ async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Locked SSH user", str(user_id))
+    log_admin_action(request.session.get("admin_user"), "Locked SSH user", user_data["username"])
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
@@ -450,6 +450,6 @@ async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(ge
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Unlocked SSH user", str(user_id))
+    log_admin_action(request.session.get("admin_user"), "Unlocked SSH user", user_data["username"])
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)

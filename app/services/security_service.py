@@ -24,3 +24,8 @@ async def update_admin_password(username: str, new_password: str, check_complexi
         return False, "Failed to update password."
 
     return True, ""
+
+
+async def verify_admin_password(admin_row, plain_password: str) -> bool:
+    expected_hash = encrypt_password(plain_password, admin_row['salt'])
+    return expected_hash == admin_row['password_md5salted']

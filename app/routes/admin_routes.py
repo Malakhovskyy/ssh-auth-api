@@ -5,7 +5,7 @@ from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
-from services.security_service import update_admin_password
+from services.security_service import update_admin_password, verify_admin_password
 
 init_db()  # Ensure DB initialized
 
@@ -47,27 +47,36 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
 async def change_password_page(request: Request):
     return templates.TemplateResponse("change_password.html", {"request": request})
 
+from services.security_service import update_admin_password, verify_admin_password
+
 @admin_router.post("/admin/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):
     username = request.session.get("admin_user")
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
+    
     conn = get_db_connection()
     admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
     if not admin:
         conn.close()
         raise HTTPException(status_code=400, detail="Admin not found.")
-    # ✅ Correct password check here
-    if encrypt_password(old_password, admin['salt']) != admin['password_md5salted']:
+    
+    # ✅ Now use centralized verify_admin_password
+    valid = await verify_admin_password(admin, old_password)
+    if not valid:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
+
     if new_password != confirm_password:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "New passwords do not match"})
+
     conn.close()
+
     success, error = await update_admin_password(username, new_password)
     if not success:
         return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
+    
     log_admin_action(username, "Changed password")
     request.session.pop("admin_user", None)
     return RedirectResponse(url="/admin/login", status_code=303)

@@ -190,7 +190,13 @@ async def update_settings(
 
     set_setting('smtp_from', smtp_from)
 
-    return RedirectResponse(url="/admin/settings", status_code=303)
+    return RedirectResponse(url="/admin/settings?success=1", status_code=303)
+
+@admin_router.get("/admin/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
+    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
+    success = request.query_params.get("success")
+    return templates.TemplateResponse("settings.html", {"request": request, "settings": settings, "success": success})
 
 # --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
 

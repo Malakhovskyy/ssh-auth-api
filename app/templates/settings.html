@@ -5,6 +5,10 @@
 {% block content %}
 <h1>System Settings</h1>
 
+{% if success %}
+    <div class="alert-success">✅ Settings saved successfully!</div>
+{% endif %}
+
 <form method="post" action="/admin/settings">
 
     <!-- General Settings Block -->
@@ -20,13 +24,13 @@
         <h2>Security Settings</h2>
 
         <label>
-            <input type="checkbox" name="enforce_password_complexity"
+            <input type="checkbox" name="enforce_password_complexity" 
             {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
             Enforce Password Complexity
         </label><br><br>
     </div>
 
-    <!-- Email Settings Block -->
+    <!-- Email (SMTP) Settings Block -->
     <div class="settings-block">
         <h2>Email (SMTP) Settings</h2>
 
@@ -39,8 +43,8 @@
         <label>SMTP Username:</label><br>
         <input type="text" name="smtp_user" value="{{ settings.smtp_user }}" class="input-standard"><br><br>
 
-        <label>SMTP Password:</label><br>
-        <input type="password" name="smtp_password" value="{{ settings.smtp_password }}" class="input-standard"><br><br>
+        <label>SMTP Password (Leave empty if unchanged):</label><br>
+        <input type="password" name="smtp_password" class="input-standard"><br><br>
 
         <label>From Email Address:</label><br>
         <input type="email" name="smtp_from" value="{{ settings.smtp_from }}" class="input-standard"><br><br>
@@ -52,5 +56,4 @@
 
 <br>
 <a href="/admin/dashboard">← Back to Dashboard</a>
-
 {% endblock %}

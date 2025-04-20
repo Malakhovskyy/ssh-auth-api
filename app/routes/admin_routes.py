@@ -21,6 +21,15 @@ admin_router = APIRouter()
 
 @admin_router.get("/admin/login", response_class=HTMLResponse)
 async def login_page(request: Request):
+    restrict_admin_ip = get_setting('restrict_admin_ip')
+    if restrict_admin_ip == '1':
+        x_forwarded_for = request.headers.get('x-forwarded-for')
+        if x_forwarded_for:
+            ip_address = x_forwarded_for.split(',')[0].strip()
+        else:
+            ip_address = request.client.host
+        if not is_admin_ip_allowed(ip_address):
+            return templates.TemplateResponse("access_denied.html", {"request": request})
     return templates.TemplateResponse("login.html", {"request": request})
 
 from datetime import datetime

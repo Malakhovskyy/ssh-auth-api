@@ -1,20 +1,21 @@
 {% extends "base.html" %}
 
-{% block title %}Assign User to Server - SSH Key Manager{% endblock %}
+{% block title %}Assign User to Server{% endblock %}
 
 {% block content %}
-<h1>Assign User to Server: {{ server["server_name"] }}</h1>
+<h1>Assign User to Server: {{ server["server_name"] if server["server_name"] else "Unknown Server" }}</h1>
 
 {% if error %}
-    <div class="error">{{ error }}</div>
+    <div style="color: red; font-weight: bold; margin-bottom: 20px;">
+        {{ error }}
+    </div>
 {% endif %}
 
 <form method="post" action="/admin/servers/assign-user/{{ server['id'] }}">
-
     <label>Select User:</label><br>
     <select name="user_id" class="input-standard" required>
         {% for user in users %}
-            <option value="{{ user['id'] }}">{{ user['username'] }}</option>
+            <option value="{{ user['id'] }}" {% if assigned_user_id == user['id'] %}selected{% endif %}>{{ user['username'] }}</option>
         {% endfor %}
     </select><br><br>
 
@@ -25,10 +26,9 @@
         {% endfor %}
     </select><br><br>
 
-    <button type="submit">Assign User</button>
-
+    <button type="submit">Assign Selected User</button>
 </form>
 
-<br><a href="/admin/servers">← Back to Servers List</a>
+<br><a href="/admin/servers">← Back to Servers</a>
 
 {% endblock %}

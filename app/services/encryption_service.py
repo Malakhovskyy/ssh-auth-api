@@ -1,15 +1,14 @@
 from cryptography.fernet import Fernet
-import os
 
-FERNET_KEY = os.getenv("ENCRYPTION_KEY")
+# Static encryption key (must be securely generated and stored in .env)
+ENCRYPTION_KEY = "BnhMfP3d4n2H2k8OS7p0R9M_d5qhecbnOBuOZ43oMg0="
 
-if not FERNET_KEY:
-    raise ValueError("Missing ENCRYPTION_KEY environment variable!")
-
-fernet = Fernet(FERNET_KEY)
+fernet = Fernet(ENCRYPTION_KEY)
 
 def encrypt_sensitive_value(value: str) -> str:
+    """Encrypt a plaintext string."""
     return fernet.encrypt(value.encode()).decode()
 
 def decrypt_sensitive_value(token: str) -> str:
+    """Decrypt a previously encrypted string."""
     return fernet.decrypt(token.encode()).decode()

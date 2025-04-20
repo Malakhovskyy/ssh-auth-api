@@ -158,6 +158,8 @@ async def settings_page(request: Request, user: str = Depends(get_current_admin_
     settings = {key: get_setting(key) for key in ["enforce_password_complexity", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
     return templates.TemplateResponse("settings.html", {"request": request, "settings": settings})
 
+from services.encryption_service import encrypt_sensitive_value
+
 @admin_router.post("/admin/settings")
 async def update_settings(
     request: Request,
@@ -173,7 +175,7 @@ async def update_settings(
     set_setting('smtp_port', smtp_port)
     set_setting('smtp_user', smtp_user)
 
-    # ✅ Correct encryption function
+    # ✅ Encrypt SMTP password before saving
     encrypted_smtp_password = encrypt_sensitive_value(smtp_password)
     set_setting('smtp_password', encrypted_smtp_password)
 

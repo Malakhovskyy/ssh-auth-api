@@ -293,7 +293,7 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
 
 
  # EMAIL LOGS
- @admin_router.get("/admin/email-logs", response_class=HTMLResponse)
+@admin_router.get("/admin/email-logs", response_class=HTMLResponse)
 async def view_email_logs(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
     email_logs = conn.execute('SELECT * FROM email_logs ORDER BY timestamp DESC').fetchall()

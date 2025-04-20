@@ -28,6 +28,8 @@
             {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
             Enforce Password Complexity
         </label><br><br>
+        <label>Admin Session Timeout (minutes):</label><br>
+        <input type="number" name="admin_session_timeout" value="{{ settings.admin_session_timeout }}" class="input-standard"><br><br>
     </div>
 
     <!-- Email (SMTP) Settings Block -->

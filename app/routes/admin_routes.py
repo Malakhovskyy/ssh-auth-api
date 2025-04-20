@@ -8,6 +8,7 @@ from services.token_service import generate_reset_token, verify_reset_token
 from services.security_service import update_admin_password, verify_admin_password
 from services.security_service import create_admin_with_password
 from services.encryption_service import encrypt_sensitive_value
+from datetime import datetime
 
 init_db()  # Ensure DB initialized
 
@@ -21,6 +22,8 @@ admin_router = APIRouter()
 async def login_page(request: Request):
     return templates.TemplateResponse("login.html", {"request": request})
 
+from datetime import datetime
+
 @admin_router.post("/admin/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
     x_forwarded_for = request.headers.get('x-forwarded-for')
@@ -31,7 +34,9 @@ async def login(request: Request, username: str = Form(...), password: str = For
     admin = authenticate_admin(username, password, ip_address)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
+    # ✅ Set session values
     request.session["admin_user"] = admin["admin_username"]
+    request.session["login_time"] = datetime.utcnow().isoformat()  # ✅ Save login time for timeout control
     if admin["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
     return RedirectResponse(url="/admin/dashboard", status_code=303)
@@ -155,7 +160,7 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
 # settings #
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
-    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
+    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "admin_session_timeout", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
     success = request.query_params.get("success")  # ✅ Read from query params
     return templates.TemplateResponse(
         "settings.html",
@@ -172,6 +177,7 @@ from services.encryption_service import encrypt_sensitive_value
 async def update_settings(
     request: Request,
     enforce_password_complexity: str = Form(None),
+    admin_session_timeout: str = Form(""),
     domain: str = Form(""),
     smtp_host: str = Form(""),
     smtp_port: str = Form(""),
@@ -180,6 +186,7 @@ async def update_settings(
     smtp_from: str = Form("")
 ):
     set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
+    set_setting('admin_session_timeout', admin_session_timeout)
     set_setting('domain', domain)
     set_setting('smtp_host', smtp_host)
     set_setting('smtp_port', smtp_port)

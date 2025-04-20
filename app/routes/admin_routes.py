@@ -598,6 +598,20 @@ async def add_ssh_key(
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- EDIT SSH Key (POST form submit) --
+@admin_router.get("/admin/ssh-keys/edit/{key_id}", response_class=HTMLResponse)
+async def edit_ssh_key_page(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    row = conn.execute('SELECT * FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="SSH Key not found")
+    decrypted_key_data = decrypt_sensitive_value(row["ssh_key_data"]) if row["ssh_key_data"] else ""
+    return templates.TemplateResponse("edit_ssh_key.html", {
+        "request": request,
+        "key_data": row,
+        "decrypted_key_data": decrypted_key_data
+    })
+
 @admin_router.post("/admin/ssh-keys/edit/{key_id}")
 async def edit_ssh_key(
     key_id: int,

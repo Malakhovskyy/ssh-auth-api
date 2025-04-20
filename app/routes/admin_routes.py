@@ -74,7 +74,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
 
     conn.close()
 
-    success, error = await create_admin_with_password(username, password, email)
+    success, error = await update_admin_password(username, new_password)
     if not success:
         return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
     
@@ -104,7 +104,7 @@ async def add_admin(request: Request, username: str = Form(...), password: str =
         conn.close()
         return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Admin username already exists", "username": username, "email": email})
 
-    success, error = await update_admin_password(username, password)
+    success, error = await create_admin_with_password(username, password, email)
     if not success:
         conn.close()
         return templates.TemplateResponse("admin_add.html", {"request": request, "error": error, "username": username, "email": email})

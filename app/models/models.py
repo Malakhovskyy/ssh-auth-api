@@ -136,13 +136,16 @@ def init_db():
         )
     ''')
 
+# Allowed API Sources table
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS allowed_api_sources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_type TEXT NOT NULL,
-            source_value TEXT NOT NULL
+            ip_or_cidr_or_asn TEXT NOT NULL,
+            type TEXT NOT NULL,
+            description TEXT
         )
     ''')
+    
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS reset_tokens (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

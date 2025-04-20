@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Add Allowed IP - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Add Allowed IP / CIDR / ASN</h1>
+
+<form method="post" action="/admin/allowed-ips/add">
+
+    <label>IP / CIDR / ASN:</label><br>
+    <input type="text" name="ip_or_cidr_or_asn" class="input-standard" required><br><br>
+
+    <label>Type:</label><br>
+    <select name="type" class="input-standard" required>
+        <option value="IP">IP</option>
+        <option value="CIDR">CIDR</option>
+        <option value="ASN">ASN</option>
+    </select><br><br>
+
+    <label>Description:</label><br>
+    <input type="text" name="description" class="input-standard"><br><br>
+
+    <button type="submit">Add Allowed IP</button>
+
+</form>
+
+<br><a href="/admin/allowed-ips">← Back to Allowed IPs</a>
+
+{% endblock %}

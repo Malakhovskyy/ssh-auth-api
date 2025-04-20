@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Allowed IP - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Edit Allowed IP / CIDR / ASN</h1>
+
+<form method="post" action="/admin/allowed-ips/edit/{{ allowed_ip['id'] }}">
+
+    <label>IP / CIDR / ASN:</label><br>
+    <input type="text" name="ip_or_cidr_or_asn" class="input-standard" required value="{{ allowed_ip['ip_or_cidr_or_asn'] }}"><br><br>
+
+    <label>Type:</label><br>
+    <select name="type" class="input-standard" required>
+        <option value="IP" {% if allowed_ip['type'] == 'IP' %}selected{% endif %}>IP</option>
+        <option value="CIDR" {% if allowed_ip['type'] == 'CIDR' %}selected{% endif %}>CIDR</option>
+        <option value="ASN" {% if allowed_ip['type'] == 'ASN' %}selected{% endif %}>ASN</option>
+    </select><br><br>
+
+    <label>Description:</label><br>
+    <input type="text" name="description" class="input-standard" value="{{ allowed_ip['description'] }}"><br><br>
+
+    <button type="submit">Save Changes</button>
+
+</form>
+
+<br><a href="/admin/allowed-ips">← Back to Allowed IPs</a>
+
+{% endblock %}

@@ -862,3 +862,77 @@ async def unassign_user_from_server(server_id: int, user_id: int, request: Reque
     log_admin_action(request.session.get("admin_user"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
 
     return RedirectResponse(url="/admin/servers", status_code=303)
+
+
+#allowed IPs
+@admin_router.get("/admin/allowed-ips", response_class=HTMLResponse)
+async def allowed_ips_list(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    allowed_ips = conn.execute('SELECT * FROM allowed_api_sources').fetchall()
+    conn.close()
+    return templates.TemplateResponse("allowed_ips.html", {"request": request, "allowed_ips": allowed_ips})
+
+@admin_router.get("/admin/allowed-ips/add", response_class=HTMLResponse)
+async def add_allowed_ip_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_allowed_ip.html", {"request": request})
+
+@admin_router.post("/admin/allowed-ips/add")
+async def add_allowed_ip(request: Request, 
+                          ip_or_cidr_or_asn: str = Form(...), 
+                          type: str = Form(...),
+                          description: str = Form(""),
+                          user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    conn.execute('INSERT INTO allowed_api_sources (ip_or_cidr_or_asn, type, description) VALUES (?, ?, ?)',
+                 (ip_or_cidr_or_asn, type, description))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Added Allowed IP/ASN", ip_or_cidr_or_asn)
+
+    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
+
+@admin_router.get("/admin/allowed-ips/edit/{allowed_id}", response_class=HTMLResponse)
+async def edit_allowed_ip_page(allowed_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    allowed_ip = conn.execute('SELECT * FROM allowed_api_sources WHERE id = ?', (allowed_id,)).fetchone()
+    conn.close()
+
+    if not allowed_ip:
+        raise HTTPException(status_code=404, detail="Allowed IP/ASN not found")
+
+    return templates.TemplateResponse("edit_allowed_ip.html", {"request": request, "allowed_ip": allowed_ip})
+
+@admin_router.post("/admin/allowed-ips/edit/{allowed_id}")
+async def edit_allowed_ip(allowed_id: int,
+                          request: Request,
+                          ip_or_cidr_or_asn: str = Form(...),
+                          type: str = Form(...),
+                          description: str = Form(""),
+                          user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    conn.execute('UPDATE allowed_api_sources SET ip_or_cidr_or_asn = ?, type = ?, description = ? WHERE id = ?',
+                 (ip_or_cidr_or_asn, type, description, allowed_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Edited Allowed IP/ASN", ip_or_cidr_or_asn)
+
+    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
+
+@admin_router.post("/admin/allowed-ips/delete/{allowed_id}")
+async def delete_allowed_ip(allowed_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    allowed_ip = conn.execute('SELECT * FROM allowed_api_sources WHERE id = ?', (allowed_id,)).fetchone()
+    if not allowed_ip:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Allowed IP/ASN not found")
+
+    conn.execute('DELETE FROM allowed_api_sources WHERE id = ?', (allowed_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Deleted Allowed IP/ASN", allowed_ip["ip_or_cidr_or_asn"])
+
+    return RedirectResponse(url="/admin/allowed-ips", status_code=303)

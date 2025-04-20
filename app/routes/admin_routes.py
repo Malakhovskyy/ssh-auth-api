@@ -195,9 +195,10 @@ async def update_settings(
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
     settings = {key: get_setting(key) for key in ["enforce_password_complexity", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
-    success = request.query_params.get("success")
+    success = request.query_params.get("success")  # ✅ Read success param
     return templates.TemplateResponse("settings.html", {"request": request, "settings": settings, "success": success})
 
+    
 # --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
 
 @admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)

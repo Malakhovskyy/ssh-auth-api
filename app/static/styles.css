@@ -156,7 +156,7 @@ table tr:hover {
 }
 
 .input-standard {
-    width: 400px;
+    width: 100px;
     padding: 10px;
     margin-top: 5px;
     border: 1px solid #ccc;

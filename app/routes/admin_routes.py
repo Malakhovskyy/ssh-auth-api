@@ -802,3 +802,44 @@ async def delete_server(server_id: int, request: Request, user: str = Depends(ge
     log_admin_action(request.session.get("admin_user"), "Deleted server", server["server_name"])
 
     return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.get("/admin/servers/assign-user/{server_id}", response_class=HTMLResponse)
+async def assign_user_to_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    if not server:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    users = conn.execute('SELECT * FROM users').fetchall()
+    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+
+    conn.close()
+
+    return templates.TemplateResponse("assign_user_to_server.html", {
+        "request": request,
+        "server": server,
+        "users": users,
+        "ssh_keys": ssh_keys
+    })
+
+@admin_router.post("/admin/servers/assign-user/{server_id}")
+async def assign_user_to_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    form = await request.form()
+    user_id = int(form.get("user_id"))
+    ssh_key_id = int(form.get("ssh_key_id"))
+
+    conn = get_db_connection()
+
+    # Insert assignment
+    conn.execute(
+        'INSERT INTO server_assignments (server_id, user_id, ssh_key_id) VALUES (?, ?, ?)',
+        (server_id, user_id, ssh_key_id)
+    )
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Assigned user to server", f"ServerID {server_id} UserID {user_id}")
+
+    return RedirectResponse(url="/admin/servers", status_code=303)

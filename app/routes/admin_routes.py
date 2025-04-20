@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 from services.token_service import generate_reset_token, verify_reset_token
 from services.email_service import send_password_reset_email
 import secrets
+from hashlib import md5
 
 templates = Jinja2Templates(directory="templates")
 admin_router = APIRouter()

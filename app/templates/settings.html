@@ -6,25 +6,39 @@
 <h1>System Settings</h1>
 
 <form method="post" action="/admin/settings">
-    <label>SMTP Host:</label>
-    <input type="text" name="smtp_host" required>
-
-    <label>SMTP Port:</label>
-    <input type="text" name="smtp_port" required>
-
-    <label>SMTP User:</label>
-    <input type="text" name="smtp_user" required>
-
-    <label>SMTP Password:</label>
-    <input type="password" name="smtp_password" required>
-
-    <label>SMTP From Email:</label>
-    <input type="email" name="smtp_from" required>
 
     <label>
-        <input type="checkbox" name="enforce_password_complexity"> Enforce Password Complexity
-    </label>
+        <input type="checkbox" name="enforce_password_complexity" 
+        {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
+        Enforce Password Complexity
+    </label><br><br>
+
+    <h3>Domain Settings</h3>
+
+    <label>Domain:</label><br>
+    <input type="text" name="domain" value="{{ settings.domain }}"><br><br>
+
+    <h3>SMTP Settings</h3>
+
+    <label>SMTP Host:</label><br>
+    <input type="text" name="smtp_host" value="{{ settings.smtp_host }}"><br><br>
+
+    <label>SMTP Port:</label><br>
+    <input type="text" name="smtp_port" value="{{ settings.smtp_port }}"><br><br>
+
+    <label>SMTP Username:</label><br>
+    <input type="text" name="smtp_user" value="{{ settings.smtp_user }}"><br><br>
+
+    <label>SMTP Password:</label><br>
+    <input type="password" name="smtp_password" value="{{ settings.smtp_password }}"><br><br>
+
+    <label>From Email Address:</label><br>
+    <input type="email" name="smtp_from" value="{{ settings.smtp_from }}"><br><br>
 
     <button type="submit">Save Settings</button>
+
 </form>
+
+<br>
+<a href="/admin/dashboard">← Back to Dashboard</a>
 {% endblock %}

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
-from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting
+from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 from services.security_service import update_admin_password, verify_admin_password
@@ -150,22 +150,6 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
     log_admin_action(request.session.get("admin_user"), "Edited admin", object_modified=admin["admin_username"])
     return RedirectResponse(url="/admin/admins", status_code=303)
 
-# @admin_router.post("/admin/reset-password/{token}")
-# async def reset_password(token: str, request: Request, new_password: str = Form(...), confirm_password: str = Form(...)):
-#     if new_password != confirm_password:
-#         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Passwords do not match."})
-
-#     username = verify_reset_token(token)
-#     if not username:
-#         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
-
-#     success, error = await update_admin_password(username, new_password)
-#     if not success:
-#         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
-
-#     return RedirectResponse(url="/admin/login", status_code=303)
-
-
 
 #settings#
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
@@ -187,7 +171,10 @@ async def update_settings(
     set_setting('smtp_host', smtp_host)
     set_setting('smtp_port', smtp_port)
     set_setting('smtp_user', smtp_user)
-    set_setting('smtp_password', smtp_password)
+
+    # ✅ Encrypt SMTP password before saving
+    encrypted_smtp_password = encrypt_password(smtp_password)
+    set_setting('smtp_password', encrypted_smtp_password)
     set_setting('smtp_from', smtp_from)
     return RedirectResponse(url="/admin/settings", status_code=303)
 

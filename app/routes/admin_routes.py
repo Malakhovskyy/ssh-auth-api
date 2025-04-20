@@ -709,9 +709,36 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
         conn.execute('INSERT INTO assignments (ssh_key_id, user_id) VALUES (?, ?)', (key_id, user_id))
 
     conn.commit()
+
+    # Fetch username
+    user_rec = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+    username = user_rec["username"] if user_rec else f"UserID {user_id}"
+
+    # Fetch SSH key names
+    if selected_keys:
+        # Convert selected_keys to tuple of integers
+        key_ids = tuple(int(k) for k in selected_keys)
+
+        if len(key_ids) == 1:
+            placeholders = "(?)"
+        else:
+            placeholders = f"({','.join(['?']*len(key_ids))})"
+
+        key_names_query = f'SELECT key_name FROM ssh_keys WHERE id IN {placeholders}'
+        key_recs = conn.execute(key_names_query, key_ids).fetchall()
+        key_names = [rec["key_name"] for rec in key_recs]
+        key_names_str = ", ".join(key_names)
+    else:
+        key_names_str = "No Keys Assigned"
+
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Assigned SSH keys to user", f"UserID {user_id}")
+    # Log human-readable
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Assigned SSH keys to user",
+        f"[{key_names_str}] → {username}"
+    )
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 

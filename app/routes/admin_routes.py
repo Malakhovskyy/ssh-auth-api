@@ -152,7 +152,7 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 
-#settings#
+# settings #
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
     settings = {key: get_setting(key) for key in ["enforce_password_complexity", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
@@ -177,14 +177,20 @@ async def update_settings(
     set_setting('smtp_port', smtp_port)
     set_setting('smtp_user', smtp_user)
 
-    # ✅ Encrypt SMTP password before saving
-    encrypted_smtp_password = encrypt_sensitive_value(smtp_password)
-    set_setting('smtp_password', encrypted_smtp_password)
+    smtp_password = smtp_password.strip()
+
+    if smtp_password:
+        # ✅ New password provided → Encrypt and save
+        encrypted_smtp_password = encrypt_sensitive_value(smtp_password)
+        set_setting('smtp_password', encrypted_smtp_password)
+    else:
+        # ✅ No new password provided → Keep existing one
+        existing_encrypted_password = get_setting('smtp_password')
+        set_setting('smtp_password', existing_encrypted_password)
 
     set_setting('smtp_from', smtp_from)
 
     return RedirectResponse(url="/admin/settings", status_code=303)
-
 
 # --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
 

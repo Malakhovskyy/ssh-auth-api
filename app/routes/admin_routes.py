@@ -506,36 +506,47 @@ async def ssh_keys_list(request: Request, user: str = Depends(get_current_admin_
 @admin_router.post("/admin/ssh-keys/lock/{key_id}")
 async def lock_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
+    row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH Key not found")
+    key_name = row["key_name"]
     conn.execute('UPDATE ssh_keys SET locked = 1 WHERE id = ?', (key_id,))
     conn.commit()
     conn.close()
-
-    log_admin_action(request.session.get("admin_user"), "Locked SSH key", str(key_id))
+    log_admin_action(request.session.get("admin_user"), "Locked SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Unlock SSH Key --
 @admin_router.post("/admin/ssh-keys/unlock/{key_id}")
 async def unlock_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
+    row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH Key not found")
+    key_name = row["key_name"]
     conn.execute('UPDATE ssh_keys SET locked = 0 WHERE id = ?', (key_id,))
     conn.commit()
     conn.close()
-
-    log_admin_action(request.session.get("admin_user"), "Unlocked SSH key", str(key_id))
+    log_admin_action(request.session.get("admin_user"), "Unlocked SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Delete SSH Key --
 @admin_router.post("/admin/ssh-keys/delete/{key_id}")
 async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-
-    # Optional: First delete assignments related to this key
+    row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH Key not found")
+    key_name = row["key_name"]
+    # First delete assignments
     conn.execute('DELETE FROM assignments WHERE ssh_key_id = ?', (key_id,))
     conn.execute('DELETE FROM ssh_keys WHERE id = ?', (key_id,))
     conn.commit()
     conn.close()
-
-    log_admin_action(request.session.get("admin_user"), "Deleted SSH key", str(key_id))
+    log_admin_action(request.session.get("admin_user"), "Deleted SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Unassign User from SSH Key --

@@ -832,7 +832,7 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
 
     conn = get_db_connection()
 
-    # Always fetch these first
+    # Fetch all users and keys early
     users = conn.execute('SELECT * FROM users').fetchall()
     ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
 
@@ -856,15 +856,28 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
             }
         )
 
-    # Otherwise create assignment
+    # Insert assignment
     conn.execute(
         'INSERT INTO server_assignments (server_id, user_id, ssh_key_id) VALUES (?, ?, ?)',
         (server_id, user_id, ssh_key_id)
     )
     conn.commit()
+
+    # Fetch server name and username for logging
+    server = conn.execute('SELECT server_name FROM servers WHERE id = ?', (server_id,)).fetchone()
+    user_obj = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Assigned user to server", f"ServerID {server_id} UserID {user_id}")
+    # Log with real names
+    server_name = server["server_name"] if server else f"ServerID {server_id}"
+    username = user_obj["username"] if user_obj else f"UserID {user_id}"
+
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Assigned user to server",
+        f"{username} → {server_name}"
+    )
 
     return RedirectResponse(url="/admin/servers", status_code=303)
 

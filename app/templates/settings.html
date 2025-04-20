@@ -7,33 +7,44 @@
 
 <form method="post" action="/admin/settings">
 
-    <label>
-        <input type="checkbox" name="enforce_password_complexity" 
-        {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
-        Enforce Password Complexity
-    </label><br><br>
+    <!-- General Settings Block -->
+    <div class="settings-block">
+        <h2>General Settings</h2>
 
-    <h3>Domain Settings</h3>
+        <label>Domain:</label><br>
+        <input type="text" name="domain" value="{{ settings.domain }}" class="input-standard"><br><br>
+    </div>
 
-    <label>Domain:</label><br>
-    <input type="text" name="domain" value="{{ settings.domain }}"><br><br>
+    <!-- Security Settings Block -->
+    <div class="settings-block">
+        <h2>Security Settings</h2>
 
-    <h3>SMTP Settings</h3>
+        <label>
+            <input type="checkbox" name="enforce_password_complexity"
+            {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
+            Enforce Password Complexity
+        </label><br><br>
+    </div>
 
-    <label>SMTP Host:</label><br>
-    <input type="text" name="smtp_host" value="{{ settings.smtp_host }}"><br><br>
+    <!-- Email Settings Block -->
+    <div class="settings-block">
+        <h2>Email (SMTP) Settings</h2>
 
-    <label>SMTP Port:</label><br>
-    <input type="text" name="smtp_port" value="{{ settings.smtp_port }}"><br><br>
+        <label>SMTP Host:</label><br>
+        <input type="text" name="smtp_host" value="{{ settings.smtp_host }}" class="input-standard"><br><br>
 
-    <label>SMTP Username:</label><br>
-    <input type="text" name="smtp_user" value="{{ settings.smtp_user }}"><br><br>
+        <label>SMTP Port:</label><br>
+        <input type="text" name="smtp_port" value="{{ settings.smtp_port }}" class="input-standard"><br><br>
 
-    <label>SMTP Password:</label><br>
-    <input type="password" name="smtp_password" value="{{ settings.smtp_password }}"><br><br>
+        <label>SMTP Username:</label><br>
+        <input type="text" name="smtp_user" value="{{ settings.smtp_user }}" class="input-standard"><br><br>
 
-    <label>From Email Address:</label><br>
-    <input type="email" name="smtp_from" value="{{ settings.smtp_from }}"><br><br>
+        <label>SMTP Password:</label><br>
+        <input type="password" name="smtp_password" value="{{ settings.smtp_password }}" class="input-standard"><br><br>
+
+        <label>From Email Address:</label><br>
+        <input type="email" name="smtp_from" value="{{ settings.smtp_from }}" class="input-standard"><br><br>
+    </div>
 
     <button type="submit">Save Settings</button>
 
@@ -41,4 +52,5 @@
 
 <br>
 <a href="/admin/dashboard">← Back to Dashboard</a>
+
 {% endblock %}

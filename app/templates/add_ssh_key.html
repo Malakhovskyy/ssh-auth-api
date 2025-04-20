@@ -38,6 +38,12 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 
 <script>
+// Set default expiration date to 1 year from now
+const oneYearFromNow = new Date();
+oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+const formattedDate = oneYearFromNow.toISOString().slice(0, 19).replace('T', ' ');
+document.getElementById('expiration_date').value = formattedDate;
+
 // Flatpickr calendar + clock
 flatpickr("#expiration_date", {
     enableTime: true,

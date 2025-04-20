@@ -840,9 +840,9 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
 
     if existing_assignment:
     # Fetch users and ssh keys BEFORE closing conn
-    users = conn.execute('SELECT * FROM users').fetchall()
-    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
-    conn.close()
+        users = conn.execute('SELECT * FROM users').fetchall()
+        ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+        conn.close()
 
     # Then return response
     return templates.TemplateResponse(

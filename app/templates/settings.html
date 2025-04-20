@@ -28,6 +28,16 @@
             {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
             Enforce Password Complexity
         </label><br><br>
+        <div class="password-policy">
+          <h3>Password Requirements:</h3>
+          <ul>
+            <li>Minimum <strong>14 characters</strong> in length</li>
+            <li>At least <strong>one number</strong> (0–9)</li>
+            <li>At least <strong>one special character</strong> (e.g., ! @ # $ % ^ & *)</li>
+            <li>Must <strong>not contain</strong> your username</li>
+            <li>Must <strong>not contain common weak words</strong>: admin, password, qwerty, letmein, 123456, welcome</li>
+          </ul>
+        </div>
         <label>Admin Session Timeout (minutes):</label><br>
         <input type="number" name="admin_session_timeout" value="{{ settings.admin_session_timeout }}" 
                class="number" min="1" max="99" oninput="this.value = this.value.replace(/[^0-9]/g, '');"><br><br>

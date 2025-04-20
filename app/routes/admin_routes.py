@@ -832,6 +832,27 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
 
     conn = get_db_connection()
 
+    # Check if user already assigned to this server
+    existing_assignment = conn.execute(
+        'SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?',
+        (server_id, user_id)
+    ).fetchone()
+
+    if existing_assignment:
+        conn.close()
+        # Return back to assign page with error
+        return templates.TemplateResponse(
+            "assign_user_to_server.html",
+            {
+                "request": request,
+                "error": "User already assigned to this server!",
+                "server": {"id": server_id},
+                "users": conn.execute('SELECT * FROM users').fetchall(),
+                "ssh_keys": conn.execute('SELECT * FROM ssh_keys').fetchall(),
+                "assigned_user_id": user_id
+            }
+        )
+
     # Insert assignment
     conn.execute(
         'INSERT INTO server_assignments (server_id, user_id, ssh_key_id) VALUES (?, ?, ?)',

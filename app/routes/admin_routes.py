@@ -7,7 +7,7 @@ from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 from services.security_service import update_admin_password, verify_admin_password
 from services.security_service import create_admin_with_password
-from services.encryption_service import encrypt_sensitive_value
+from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from datetime import datetime
 
 init_db()  # Ensure DB initialized

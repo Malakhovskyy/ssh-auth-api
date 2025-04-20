@@ -344,7 +344,7 @@ async def add_ssh_user_page(request: Request, user: str = Depends(get_current_ad
 async def add_ssh_user(
     request: Request,
     username: str = Form(...),
-    email: str = Form(""),
+    email: str = Form(...),
     expiration_date: str = Form(...),
     never_expires: str = Form(None),
     locked: str = Form(None),
@@ -352,19 +352,29 @@ async def add_ssh_user(
 ):
     conn = get_db_connection()
 
+    # Check for duplicate username
+    existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    if existing_user:
+        conn.close()
+        return templates.TemplateResponse("add_ssh_user.html", {"request": request, "error": "Username already exists."})
+
+    # Check for duplicate email
+    existing_email = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    if existing_email:
+        conn.close()
+        return templates.TemplateResponse("add_ssh_user.html", {"request": request, "error": "Email already exists."})
+
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
 
     is_locked = 1 if locked else 0
 
-    conn.execute(
-        'INSERT INTO users (username, email, expiration_date, locked) VALUES (?, ?, ?, ?)',
-        (username, email, expiration_date, is_locked)
-    )
+    conn.execute('INSERT INTO users (username, email, expiration_date, locked) VALUES (?, ?, ?, ?)',
+                 (username, email, expiration_date, is_locked))
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Created SSH user", username)
+    log_admin_action(request.session.get("admin_user"), "Added SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
@@ -386,7 +396,7 @@ async def edit_ssh_user(
     user_id: int,
     request: Request,
     username: str = Form(...),
-    email: str = Form(""),
+    email: str = Form(...),
     expiration_date: str = Form(...),
     never_expires: str = Form(None),
     locked: str = Form(None),
@@ -394,22 +404,31 @@ async def edit_ssh_user(
 ):
     conn = get_db_connection()
 
+    # Check for duplicate username (excluding self)
+    existing_user = conn.execute('SELECT * FROM users WHERE username = ? AND id != ?', (username, user_id)).fetchone()
+    if existing_user:
+        conn.close()
+        return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "error": "Username already exists.", "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}})
+
+    # Check for duplicate email (excluding self)
+    existing_email = conn.execute('SELECT * FROM users WHERE email = ? AND id != ?', (email, user_id)).fetchone()
+    if existing_email:
+        conn.close()
+        return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "error": "Email already exists.", "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}})
+
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
 
     is_locked = 1 if locked else 0
 
-    conn.execute(
-        'UPDATE users SET username = ?, email = ?, expiration_date = ?, locked = ? WHERE id = ?',
-        (username, email, expiration_date, is_locked, user_id)
-    )
+    conn.execute('UPDATE users SET username = ?, email = ?, expiration_date = ?, locked = ? WHERE id = ?',
+                 (username, email, expiration_date, is_locked, user_id))
     conn.commit()
     conn.close()
 
     log_admin_action(request.session.get("admin_user"), "Edited SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
-
 # -- Delete SSH User --
 @admin_router.post("/admin/ssh-users/delete/{user_id}")
 async def delete_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):

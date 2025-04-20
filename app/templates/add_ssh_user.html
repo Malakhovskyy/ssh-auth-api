@@ -5,24 +5,29 @@
 {% block content %}
 <h1>Add SSH User</h1>
 
-{% if error %}
-    <div class="error">{{ error }}</div>
-{% endif %}
+<form method="post" action="/admin/ssh-users/add">
 
-<form method="post">
     <label>Username:</label><br>
-    <input type="text" name="username" class="input-standard" required value="{{ prefill_username if prefill_username else '' }}"><br><br>
+    <input type="text" name="username" class="input-standard" required><br><br>
+
     <label>Email:</label><br>
-    <input type="email" name="email" class="input-standard" required value="{{ prefill_email if prefill_email else '' }}"><br><br>
+    <input type="email" name="email" class="input-standard"><br><br>
+
     <label>Expiration Date:</label><br>
-    <input type="text" name="expiration_date" class="input-standard" required value="{{ prefill_expiration_date if prefill_expiration_date else '' }}"><br><br>
+    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" required><br><br>
+
     <label>
-        <input type="checkbox" name="locked"
-        {% if prefill_locked %}checked{% endif %}>
+        <input type="checkbox" id="never_expires" name="never_expires">
+        Never Expires
+    </label><br><br>
+
+    <label>
+        <input type="checkbox" name="locked">
         Locked
     </label><br><br>
 
     <button type="submit">Create SSH User</button>
+
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
@@ -40,9 +45,9 @@ document.getElementById('never_expires').addEventListener('change', function() {
     const expirationInput = document.getElementById('expiration_date');
     if (this.checked) {
         expirationInput.value = "2099-12-31 23:59:59";
-        expirationInput.readOnly = true;  // prevent typing but allow form submit
+        expirationInput.disabled = true;
     } else {
-        expirationInput.readOnly = false;
+        expirationInput.disabled = false;
         expirationInput.value = "";
     }
 });
@@ -51,6 +56,3 @@ document.getElementById('never_expires').addEventListener('change', function() {
 <br><a href="/admin/ssh-users">← Back to SSH Users List</a>
 
 {% endblock %}
-
-
-

@@ -23,7 +23,7 @@
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     {% if server["assigned_users"] %}
                         {% for user in server["assigned_users"] %}
-                            <div style="display: flex; align-items: center; gap: 5px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
                                 <span>{{ user["username"] }} ({{ user["key_name"] }})</span>
                                 <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
                                     <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
@@ -31,26 +31,30 @@
                             </div>
                         {% endfor %}
                     {% else %}
-                        No users assigned
+                        <div>No users assigned</div>
+                        <div style="margin-top: 10px;">
+                            <a href="/admin/servers/assign-user/{{ server['id'] }}">
+                                <button style="background-color: green; color: white; padding: 5px 10px; border: none; border-radius: 5px;">➕ Assign User</button>
+                            </a>
+                        </div>
                     {% endif %}
                 </div>
             </td>
-<td>
-    <div style="display: flex; flex-direction: column; gap: 8px;">
-        {% if server["assigned_users"] %}
-            {% for user in server["assigned_users"] %}
-                <div style="display: flex; align-items: center; gap: 5px;">
-                    <span>{{ user["username"] }} ({{ user["key_name"] }})</span>
-                    <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
-                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
+            <td>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <a href="/admin/servers/edit/{{ server['id'] }}">
+                        <button style="padding: 5px 10px;">✏️ Edit</button>
+                    </a>
+
+                    <form method="post" action="/admin/servers/delete/{{ server['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
+                        <button type="submit" style="background-color: red; color: white; padding: 5px 10px; border: none; border-radius: 5px;">🗑️ Delete</button>
                     </form>
+
+                    <a href="/admin/servers/assign-user/{{ server['id'] }}">
+                        <button style="background-color: green; color: white; padding: 5px 10px; border: none; border-radius: 5px;">➕ Assign User</button>
+                    </a>
                 </div>
-            {% endfor %}
-        {% else %}
-            No users assigned
-        {% endif %}
-    </div>
-</td>
+            </td>
         </tr>
         {% endfor %}
     </tbody>

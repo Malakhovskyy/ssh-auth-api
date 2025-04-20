@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 from fastapi import Request
 from models.models import get_db_connection
 from services.ip_filter_service import is_ip_allowed
+from services.encryption_service import decrypt_sensitive_value
 
 api_router = APIRouter()
 
@@ -47,7 +48,10 @@ async def get_ssh_key(server: str, username: str, request: Request):
         log_api_access(server, username, client_ip, "NO KEY", "SSH Key not found")
         raise HTTPException(status_code=404, detail="SSH Key not found")
 
-    ssh_key_data = ssh_key_rec["ssh_key_data"]
+   from services.encryption_service import decrypt_sensitive_value
+
+    # Decrypt SSH Key before returning
+    ssh_key_data = decrypt_sensitive_value(ssh_key_rec["ssh_key_data"])
 
     log_api_access(server, username, client_ip, "SUCCESS", "SSH Key provided")
     return ssh_key_data

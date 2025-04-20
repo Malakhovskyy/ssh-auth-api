@@ -41,8 +41,12 @@ async def get_ssh_key(server: str, username: str, request: Request):
 
 def log_api_access(server, username, client_ip, status):
     conn = get_db_connection()
-    conn.execute('INSERT INTO api_logs (server_name, username, status) VALUES (?, ?, ?)',
-                 (server, username, f"{status} from {client_ip}"))
+
+    # Determine success boolean
+    success = 1 if status == "SUCCESS" else 0
+
+    conn.execute('INSERT INTO api_logs (server_name, username, success) VALUES (?, ?, ?)',
+                 (server, username, success))
     conn.commit()
     conn.close()
 

@@ -1,5 +1,4 @@
-/* static/styles.css */
-
+/* General */
 body {
     margin: 0;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -11,6 +10,7 @@ body {
     min-height: 100vh;
 }
 
+/* Sidebar */
 .sidebar {
     width: 230px;
     background: #2c3e50;
@@ -18,6 +18,8 @@ body {
     padding: 20px;
     display: flex;
     flex-direction: column;
+    align-items: center; /* Center horizontally */
+    justify-content: center; /* Center vertically */
     position: sticky;
     top: 0;
     height: 100vh;
@@ -25,25 +27,39 @@ body {
 
 .sidebar h2 {
     margin-bottom: 30px;
+    font-size: 24px;
+    text-align: center;
+}
+
+.sidebar nav {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
 }
 
 .sidebar nav a {
     color: white;
     text-decoration: none;
-    margin-bottom: 15px;
-    display: block;
+    margin: 10px 0;
     font-size: 16px;
+    width: 100%;
+    text-align: center;
+    padding: 8px 0;
 }
 
 .sidebar nav a:hover {
-    text-decoration: underline;
+    background-color: #34495e;
+    border-radius: 6px;
 }
 
+/* Main content */
 .content {
     flex: 1;
     padding: 30px;
 }
 
+/* Auth Pages */
 .auth-container {
     max-width: 400px;
     margin: 100px auto;
@@ -53,10 +69,12 @@ body {
     box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 
+/* Headings */
 h1, h2 {
     margin-top: 0;
 }
 
+/* Forms */
 form {
     margin-top: 20px;
 }
@@ -69,8 +87,10 @@ input[type="email"] {
     margin-bottom: 20px;
     border: 1px solid #ccc;
     border-radius: 6px;
+    box-sizing: border-box;
 }
 
+/* Buttons */
 button {
     padding: 12px 20px;
     background-color: #007bff;
@@ -87,17 +107,19 @@ button:hover {
     background-color: #0056b3;
 }
 
+/* Tables */
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 20px;
     background: white;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid #ccc; /* Solid outer border */
 }
 
 table th, table td {
     padding: 12px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc; /* Solid inner cell borders */
     text-align: left;
 }
 
@@ -111,4 +133,13 @@ table tr:nth-child(even) {
 
 table tr:hover {
     background-color: #eef2f7;
+}
+
+/* Search input (for logs search) */
+#searchInput {
+    padding: 10px;
+    margin-bottom: 20px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 6px;
 }

@@ -178,12 +178,13 @@ async def settings_page(request: Request, user: str = Depends(get_current_admin_
         }
     )
 
-from services.encryption_service import encrypt_sensitive_value
+
 
 @admin_router.post("/admin/settings")
 async def update_settings(
     request: Request,
     enforce_password_complexity: str = Form(None),
+    restrict_admin_ip: str = Form(None), 
     admin_session_timeout: str = Form(""),
     domain: str = Form(""),
     smtp_host: str = Form(""),

@@ -55,8 +55,10 @@ document.getElementById('never_expires').addEventListener('change', function() {
     if (this.checked) {
         expirationInput.value = "2099-12-31 23:59:59";
         expirationInput.disabled = true;
+        expirationInput.style.backgroundColor = "#f0f0f0"; // grey background
     } else {
         expirationInput.disabled = false;
+        expirationInput.style.backgroundColor = "white"; // normal background
         expirationInput.value = nextYear.toISOString().slice(0, 19).replace('T', ' ');
     }
 });

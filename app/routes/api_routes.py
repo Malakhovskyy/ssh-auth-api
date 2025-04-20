@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from fastapi import Request
+from fastapi.responses import PlainTextResponse
 from models.models import get_db_connection
 from services.ip_filter_service import is_ip_allowed
 from services.encryption_service import decrypt_sensitive_value
@@ -52,7 +53,7 @@ async def get_ssh_key(server: str, username: str, request: Request):
     ssh_key_data = decrypt_sensitive_value(ssh_key_rec["ssh_key_data"])
 
     log_api_access(server, username, client_ip, "SUCCESS", "SSH Key provided")
-    return ssh_key_data
+    return PlainTextResponse(content=ssh_key_data)
 
 def log_api_access(server, username, client_ip, status, reason):
     conn = get_db_connection()

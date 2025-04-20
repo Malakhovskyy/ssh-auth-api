@@ -5,7 +5,7 @@ API_URL="https://your-api-domain/ssh-keys"    # <-- Change to your real API endp
 SERVER_NAME="$(hostname -f)"                  # Get full server hostname
 USERNAME="$1"                                 # SSH passes username as $1
 
-LOG_FILE="/var/log/ssh_api_query.log"
+LOG_FILE="/var/log/ssh_api/ssh_api_query.log"
 
 # Logging function
 log() {

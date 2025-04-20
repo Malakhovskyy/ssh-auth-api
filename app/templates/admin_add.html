@@ -1,32 +1,17 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Add Admin - SSH Key Manager</title>
-    <link href="/static/styles.css" rel="stylesheet">
-</head>
-<body>
-    <div class="content-container">
-        <h2>Add New Admin</h2>
+{% extends "base.html" %}
 
-        {% if error %}
-            <div class="error">{{ error }}</div>
-        {% endif %}
+{% block title %}Add Admin - SSH Key Manager{% endblock %}
 
-        <form method="post">
-            <input type="text" name="username" placeholder="Username" required><br><br>
+{% block content %}
+<h1>Add New Admin</h1>
 
-            <input type="password" name="password" placeholder="Password" required><br><br>
+<form method="post">
+    <input type="text" name="username" placeholder="Username" required><br>
+    <input type="email" name="email" placeholder="Email" required><br>
+    <input type="password" name="password" placeholder="Password" required><br>
+    <input type="password" name="confirm_password" placeholder="Confirm Password" required><br>
+    <button type="submit">Create Admin</button>
+</form>
 
-            <input type="password" name="confirm_password" placeholder="Confirm Password" required><br><br>
-
-            <input type="email" name="email" placeholder="Email" required><br><br>
-
-            <button type="submit">Create Admin</button>
-        </form>
-
-        <br>
-        <a href="/admin/admins">← Back to Admin List</a>
-    </div>
-</body>
-</html>
+<a href="/admin/admins" style="display: block; margin-top: 20px;">← Back to Admin List</a>
+{% endblock %}

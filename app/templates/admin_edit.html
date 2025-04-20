@@ -1,37 +1,29 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Edit Admin - SSH Key Manager</title>
-    <link href="/static/styles.css" rel="stylesheet">
-</head>
-<body>
-    <div class="content-container">
-        <h2>Edit Admin: {{ admin["admin_username"] }}</h2>
+{% extends "base.html" %}
 
-        <form method="post">
-            <input type="email" name="email" value="{{ admin['email'] }}" placeholder="Email" required><br><br>
+{% block title %}Edit Admin - SSH Key Manager{% endblock %}
 
-            <input type="password" name="password" placeholder="New Password (leave empty to keep current)"><br><br>
+{% block content %}
+<h1>Edit Admin: {{ admin["admin_username"] }}</h1>
 
-            <input type="password" name="confirm_password" placeholder="Confirm New Password (leave empty to keep current)"><br><br>
+<form method="post">
+    <input type="email" name="email" value="{{ admin['email'] }}" placeholder="Email" required><br>
 
-            <label>Enabled:</label><br>
-            <select name="enabled">
-                <option value="1" {% if admin['enabled'] %}selected{% endif %}>Yes</option>
-                <option value="0" {% if not admin['enabled'] %}selected{% endif %}>No</option>
-            </select><br><br>
+    <input type="password" name="password" placeholder="New Password (leave empty to keep current)"><br>
+    <input type="password" name="confirm_password" placeholder="Confirm New Password"><br>
 
-            <label>
-                <input type="checkbox" name="force_password_change" value="1">
-                Force password change on next login
-            </label><br><br>
+    <label>Enabled:</label>
+    <select name="enabled">
+        <option value="1" {% if admin['enabled'] %}selected{% endif %}>Yes</option>
+        <option value="0" {% if not admin['enabled'] %}selected{% endif %}>No</option>
+    </select><br><br>
 
-            <button type="submit">Update Admin</button>
-        </form>
+    <label>
+        <input type="checkbox" name="force_password_change" value="1">
+        Force password change on next login
+    </label><br><br>
 
-        <br>
-        <a href="/admin/admins">← Back to Admin List</a>
-    </div>
-</body>
-</html>
+    <button type="submit">Update Admin</button>
+</form>
+
+<a href="/admin/admins" style="display: block; margin-top: 20px;">← Back to Admin List</a>
+{% endblock %}

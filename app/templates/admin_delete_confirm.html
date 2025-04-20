@@ -1,22 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Confirm Delete - SSH Key Manager</title>
-    <link href="/static/styles.css" rel="stylesheet">
-</head>
-<body>
-    <div class="content-container">
-        <h2>Confirm Delete</h2>
+{% extends "base.html" %}
 
-        <p>Are you sure you want to delete admin user <strong>{{ admin["admin_username"] }}</strong>?</p>
+{% block title %}Confirm Delete - SSH Key Manager{% endblock %}
 
-        <form method="post" action="/admin/admins/delete/{{ admin['id'] }}">
-            <button type="submit" style="background-color:red;color:white;">Yes, Delete</button>
-        </form>
+{% block content %}
+<h1>Confirm Admin Deletion</h1>
 
-        <br>
-        <a href="/admin/admins">Cancel and go back</a>
-    </div>
-</body>
-</html>
+<p>Are you sure you want to delete admin user <strong>{{ admin["admin_username"] }}</strong>?</p>
+
+<form method="post">
+    <button type="submit" style="background-color: red;">Yes, Delete</button>
+</form>
+
+<a href="/admin/admins" style="display: block; margin-top: 20px;">← Cancel and go back</a>
+{% endblock %}

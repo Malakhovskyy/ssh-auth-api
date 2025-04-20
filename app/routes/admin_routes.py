@@ -209,5 +209,4 @@ async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_
         "Deleted admin",
         admin["admin_username"]
     )
-
     return RedirectResponse(url="/admin/admins", status_code=303)

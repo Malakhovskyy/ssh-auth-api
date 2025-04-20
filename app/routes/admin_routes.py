@@ -839,19 +839,23 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
     ).fetchone()
 
     if existing_assignment:
-        conn.close()
-        # Return back to assign page with error
-        return templates.TemplateResponse(
-            "assign_user_to_server.html",
-            {
-                "request": request,
-                "error": "User already assigned to this server!",
-                "server": {"id": server_id},
-                "users": conn.execute('SELECT * FROM users').fetchall(),
-                "ssh_keys": conn.execute('SELECT * FROM ssh_keys').fetchall(),
-                "assigned_user_id": user_id
-            }
-        )
+    # Fetch users and ssh keys BEFORE closing conn
+    users = conn.execute('SELECT * FROM users').fetchall()
+    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+    conn.close()
+
+    # Then return response
+    return templates.TemplateResponse(
+        "assign_user_to_server.html",
+        {
+            "request": request,
+            "error": "User already assigned to this server!",
+            "server": {"id": server_id},
+            "users": users,
+            "ssh_keys": ssh_keys,
+            "assigned_user_id": user_id
+        }
+    )
 
     # Insert assignment
     conn.execute(

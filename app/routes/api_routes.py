@@ -55,9 +55,12 @@ async def get_ssh_key(server: str, username: str, request: Request):
         log_api_access(server, username, client_ip, "NO KEY", "SSH Key not found")
         raise HTTPException(status_code=404, detail="SSH Key not found")
 
+    # Parse the expiration date from string to datetime object
+    expiration_date = datetime.strptime(ssh_key_rec["expiration_date"], "%Y-%m-%d %H:%M:%S")
+
     # Check if the SSH key has expired
     current_utc_time = datetime.utcnow()
-    if ssh_key_rec["expiration_date"] < current_utc_time:
+    if expiration_date < current_utc_time:
         log_api_access(server, username, client_ip, "EXPIRED", "SSH Key expired")
         raise HTTPException(status_code=403, detail="SSH Key expired")
 

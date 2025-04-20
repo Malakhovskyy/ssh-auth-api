@@ -30,7 +30,7 @@
         </label><br><br>
         <label>Admin Session Timeout (minutes):</label><br>
         <input type="number" name="admin_session_timeout" value="{{ settings.admin_session_timeout }}" 
-               class="input-standard" min="1" max="99" oninput="this.value = this.value.replace(/[^0-9]/g, '');"><br><br>
+               class="number" min="1" max="99" oninput="this.value = this.value.replace(/[^0-9]/g, '');"><br><br>
     </div>
 
     <!-- Email (SMTP) Settings Block -->

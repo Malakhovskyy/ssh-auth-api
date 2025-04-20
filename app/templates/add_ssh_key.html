@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Add SSH Key - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Add SSH Key</h1>
+
+<form method="post" action="/admin/ssh-keys/add">
+
+    <label>SSH Key Name:</label><br>
+    <input type="text" name="key_name" class="input-standard" required><br><br>
+
+    <label>Expiration Date:</label><br>
+    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" required><br><br>
+
+    <label>
+        <input type="checkbox" id="never_expires" name="never_expires">
+        Never Expires
+    </label><br><br>
+
+    <label>
+        <input type="checkbox" name="locked">
+        Locked
+    </label><br><br>
+
+    <button type="submit">Create SSH Key</button>
+
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<script>
+// Flatpickr calendar + clock
+flatpickr("#expiration_date", {
+    enableTime: true,
+    dateFormat: "Y-m-d H:i:S",
+});
+
+// Handle Never Expires checkbox
+document.getElementById('never_expires').addEventListener('change', function() {
+    const expirationInput = document.getElementById('expiration_date');
+    if (this.checked) {
+        expirationInput.value = "2099-12-31 23:59:59";
+        expirationInput.readOnly = true;
+    } else {
+        expirationInput.readOnly = false;
+        expirationInput.value = "";
+    }
+});
+</script>
+
+<br><a href="/admin/ssh-keys">← Back to SSH Keys List</a>
+
+{% endblock %}

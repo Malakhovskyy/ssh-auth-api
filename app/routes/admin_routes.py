@@ -548,3 +548,36 @@ async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: s
 
     log_admin_action(request.session.get("admin_user"), "Unassigned user from SSH key", f"KeyID {key_id} UserID {user_id}")
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+# -- Add SSH Key (GET form) --
+@admin_router.get("/admin/ssh-keys/add", response_class=HTMLResponse)
+async def add_ssh_key_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_ssh_key.html", {"request": request})
+
+# -- Add SSH Key (POST form submit) --
+@admin_router.post("/admin/ssh-keys/add")
+async def add_ssh_key(
+    request: Request,
+    key_name: str = Form(...),
+    expiration_date: str = Form(...),
+    never_expires: str = Form(None),
+    locked: str = Form(None),
+    user: str = Depends(get_current_admin_user)
+):
+    conn = get_db_connection()
+
+    if never_expires:
+        expiration_date = "2099-12-31 23:59:59"
+
+    is_locked = 1 if locked else 0
+
+    conn.execute(
+        'INSERT INTO ssh_keys (key_name, expiration_date, locked) VALUES (?, ?, ?)',
+        (key_name, expiration_date, is_locked)
+    )
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Created SSH key", key_name)
+
+    return RedirectResponse(url="/admin/ssh-keys", status_code=303)

@@ -351,31 +351,46 @@ async def add_ssh_user(
     user: str = Depends(get_current_admin_user)
 ):
     conn = get_db_connection()
-
     # Check for duplicate username
-    existing_user = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    existing_user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
     if existing_user:
         conn.close()
-        return templates.TemplateResponse("add_ssh_user.html", {"request": request, "error": "Username already exists."})
-
+        return templates.TemplateResponse(
+            "add_ssh_user.html",
+            {
+                "request": request,
+                "error": "Username already exists.",
+                "prefill_username": username,
+                "prefill_email": email,
+                "prefill_expiration_date": expiration_date,
+                "prefill_locked": locked
+            }
+        )
     # Check for duplicate email
-    existing_email = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
+    existing_email = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
     if existing_email:
         conn.close()
-        return templates.TemplateResponse("add_ssh_user.html", {"request": request, "error": "Email already exists."})
-
+        return templates.TemplateResponse(
+            "add_ssh_user.html",
+            {
+                "request": request,
+                "error": "Email already exists.",
+                "prefill_username": username,
+                "prefill_email": email,
+                "prefill_expiration_date": expiration_date,
+                "prefill_locked": locked
+            }
+        )
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
-
     is_locked = 1 if locked else 0
-
-    conn.execute('INSERT INTO users (username, email, expiration_date, locked) VALUES (?, ?, ?, ?)',
-                 (username, email, expiration_date, is_locked))
+    conn.execute(
+        'INSERT INTO users (username, email, expiration_date, locked) VALUES (?, ?, ?, ?)',
+        (username, email, expiration_date, is_locked)
+    )
     conn.commit()
     conn.close()
-
     log_admin_action(request.session.get("admin_user"), "Added SSH user", username)
-
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
 # -- Edit SSH User (GET page) --

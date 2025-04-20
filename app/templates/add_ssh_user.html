@@ -5,29 +5,23 @@
 {% block content %}
 <h1>Add SSH User</h1>
 
-<form method="post" action="/admin/ssh-users/add">
+{% if error %}
+    <div class="error">{{ error }}</div>
+{% endif %}
 
+<form method="post">
     <label>Username:</label><br>
-    <input type="text" name="username" class="input-standard" required><br><br>
-
+    <input type="text" name="username" class="input-standard" required value="{{ prefill_username if prefill_username else '' }}"><br><br>
     <label>Email:</label><br>
-    <input type="email" name="email" class="input-standard"><br><br>
-
+    <input type="email" name="email" class="input-standard" required value="{{ prefill_email if prefill_email else '' }}"><br><br>
     <label>Expiration Date:</label><br>
-    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" required><br><br>
-
+    <input type="text" name="expiration_date" class="input-standard" required value="{{ prefill_expiration_date if prefill_expiration_date else '' }}"><br><br>
     <label>
-        <input type="checkbox" id="never_expires" name="never_expires">
-        Never Expires
-    </label><br><br>
-
-    <label>
-        <input type="checkbox" name="locked">
+        <input type="checkbox" name="locked"
+        {% if prefill_locked %}checked{% endif %}>
         Locked
     </label><br><br>
-
     <button type="submit">Create SSH User</button>
-
 </form>
 
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>

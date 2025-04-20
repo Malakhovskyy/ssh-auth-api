@@ -185,3 +185,15 @@ input[type="number"].input-standard {
     font-family: monospace; /* nice for keys */
     font-size: 14px;
 }
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+td, th {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+    vertical-align: middle;
+}

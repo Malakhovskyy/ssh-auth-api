@@ -52,27 +52,22 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     username = request.session.get("admin_user")
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
-
     conn = get_db_connection()
     admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
     if not admin:
         conn.close()
         raise HTTPException(status_code=400, detail="Admin not found.")
-
-    if admin['password_md5salted'] != authenticate_admin(username, old_password, "127.0.0.1")['password_md5salted']:
+    # ✅ Correct password check here
+    if encrypt_password(old_password, admin['salt']) != admin['password_md5salted']:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
-
     if new_password != confirm_password:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "New passwords do not match"})
-
     conn.close()
-
     success, error = await update_admin_password(username, new_password)
     if not success:
         return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
-
     log_admin_action(username, "Changed password")
     request.session.pop("admin_user", None)
     return RedirectResponse(url="/admin/login", status_code=303)

@@ -156,7 +156,15 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
     settings = {key: get_setting(key) for key in ["enforce_password_complexity", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
-    return templates.TemplateResponse("settings.html", {"request": request, "settings": settings})
+    success = request.query_params.get("success")  # ✅ Read from query params
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "settings": settings,
+            "success": success  # ✅ Pass success explicitly
+        }
+    )
 
 from services.encryption_service import encrypt_sensitive_value
 
@@ -192,13 +200,6 @@ async def update_settings(
 
     return RedirectResponse(url="/admin/settings?success=1", status_code=303)
 
-@admin_router.get("/admin/settings", response_class=HTMLResponse)
-async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
-    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
-    success = request.query_params.get("success")  # ✅ Read success param
-    return templates.TemplateResponse("settings.html", {"request": request, "settings": settings, "success": success})
-
-    
 # --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
 
 @admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)

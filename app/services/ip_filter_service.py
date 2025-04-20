@@ -3,10 +3,7 @@ import sqlite3
 import socket
 import time
 from models.models import get_db_connection
-import dns.resolver
 
-
-# In-memory cache for ASN lookups
 asn_cache = {}
 
 def is_ip_allowed(ip):
@@ -15,8 +12,8 @@ def is_ip_allowed(ip):
     conn.close()
 
     for source in allowed_sources:
-        src_type = source["type"].lower()  # In your DB, column is 'type'
-        value = source["ip_or_cidr_or_asn"]  # In your DB, column is 'ip_or_cidr_or_asn'
+        src_type = source["type"].lower()
+        value = source["ip_or_cidr_or_asn"]
 
         if src_type == "ip":
             if ip == value:
@@ -27,7 +24,7 @@ def is_ip_allowed(ip):
                 if ipaddress.ip_address(ip) in ipaddress.ip_network(value, strict=False):
                     return True
             except ValueError:
-                continue  # Bad CIDR format in DB? Ignore this one safely
+                continue
 
         elif src_type == "asn":
             asn = get_asn_for_ip(ip)
@@ -46,31 +43,28 @@ def get_asn_for_ip(ip):
             return asn
 
     try:
-        reversed_ip = ".".join(reversed(ip.split(".")))
-        query = f"{reversed_ip}.origin.asn.cymru.com"
+        query = f" -v {ip}\n"
 
-        # Resolve TXT record (correct for ASN lookup)
-        answers = dns.resolver.resolve(query, "TXT")
-        response = str(answers[0])
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s.settimeout(5)
+        s.connect(("whois.cymru.com", 43))
+        s.sendall(query.encode())
 
-        # Response format typically: '"ASN | ..."' --> we extract ASN
-        asn = "AS" + response.strip('"').split()[0]
-        asn_cache[ip] = (asn, current_time)
-        return asn
-    except Exception:
-        return None
+        response = b""
+        while True:
+            data = s.recv(4096)
+            if not data:
+                break
+            response += data
+        s.close()
 
-    try:
-        reversed_ip = ".".join(reversed(ip.split(".")))
-        query = f"{reversed_ip}.origin.asn.cymru.com"
-        
-        # Use socket timeout (important to avoid curl hangs)
-        socket.setdefaulttimeout(5)
-        
-        response = socket.gethostbyname(query)
-        
-        asn = "AS" + response.split()[0]  # Take first ASN part
-        asn_cache[ip] = (asn, current_time)
-        return asn
+        lines = response.decode().splitlines()
+
+        if len(lines) >= 2:
+            parts = lines[1].split("|")
+            if len(parts) > 0:
+                asn = "AS" + parts[0].strip()
+                asn_cache[ip] = (asn, current_time)
+                return asn
     except Exception:
         return None

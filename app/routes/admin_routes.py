@@ -164,6 +164,7 @@ from services.encryption_service import encrypt_sensitive_value
 async def update_settings(
     request: Request,
     enforce_password_complexity: str = Form(None),
+    domain: str = Form(""),
     smtp_host: str = Form(""),
     smtp_port: str = Form(""),
     smtp_user: str = Form(""),
@@ -171,6 +172,7 @@ async def update_settings(
     smtp_from: str = Form("")
 ):
     set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
+    set_setting('domain', domain)
     set_setting('smtp_host', smtp_host)
     set_setting('smtp_port', smtp_port)
     set_setting('smtp_user', smtp_user)

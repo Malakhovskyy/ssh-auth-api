@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DOMAIN=${DOMAIN}
-EMAIL=${SMTP_TO}
+EMAIL=${ADMIN_MAIL}
 
 if [ ! -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
   echo "[Certbot] No cert found for $DOMAIN. Requesting..."

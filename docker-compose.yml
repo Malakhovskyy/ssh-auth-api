@@ -10,11 +10,6 @@ services:
       - ./data:/app/data
       - ./backups:/app/backups
     environment:
-      - SMTP_SERVER=${SMTP_SERVER}
-      - SMTP_PORT=${SMTP_PORT}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASS=${SMTP_PASS}
-      - SMTP_TO=${SMTP_TO}
       - DOMAIN=${DOMAIN}
     restart: unless-stopped
 
@@ -48,7 +43,7 @@ services:
     entrypoint: ["/bin/sh", "/startup.sh"]
     environment:
       - DOMAIN=${DOMAIN}
-      - SMTP_TO=${SMTP_TO}
+      - ADMIN_MAIL=${ADMIN_MAIL}
     depends_on:
       - nginx
     restart: unless-stopped

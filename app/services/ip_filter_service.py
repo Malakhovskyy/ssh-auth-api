@@ -2,14 +2,9 @@ import ipaddress
 import sqlite3
 import socket
 import time
+from models.models import get_db_connection,
 
-DB_PATH = "sshkeys.db"
 asn_cache = {}
-
-def get_db_connection():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
 
 def is_ip_allowed(ip):
     conn = get_db_connection()

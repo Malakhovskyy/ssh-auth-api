@@ -2,6 +2,11 @@
     <label><input type="checkbox" name="enforce_password_complexity" {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
     Enforce Password Complexity</label><br><br>
 
+    <h3>Domain Settings</h3>
+    <label>Domain Host:</label><br>
+    <input type="text" name="domain" value="{{ settings.domain }}"><br><br>    
+
+
     <h3>SMTP Settings</h3>
     <label>SMTP Host:</label><br>
     <input type="text" name="smtp_host" value="{{ settings.smtp_host }}"><br><br>

@@ -843,3 +843,22 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
     log_admin_action(request.session.get("admin_user"), "Assigned user to server", f"ServerID {server_id} UserID {user_id}")
 
     return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.post("/admin/servers/unassign-user/{server_id}/{user_id}")
+async def unassign_user_from_server(server_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    # Check if assignment exists
+    assignment = conn.execute('SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id)).fetchone()
+    if not assignment:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    # Delete the assignment
+    conn.execute('DELETE FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
+
+    return RedirectResponse(url="/admin/servers", status_code=303)

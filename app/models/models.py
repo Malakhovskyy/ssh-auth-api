@@ -143,8 +143,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS allowed_api_sources (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ip_or_cidr_or_asn TEXT NOT NULL,
-            type TEXT NOT NULL,
-            description TEXT
+            type TEXT NOT NULL CHECK (type IN ('ip', 'cidr', 'asn')),
+            description TEXT,
+            context TEXT NOT NULL DEFAULT 'api' CHECK (context IN ('api', 'admin', 'both'))
         )
     ''')
     

@@ -15,6 +15,7 @@
             <th>ID</th>
             <th>IP / CIDR / ASN</th>
             <th>Type</th>
+            <th>Context</th>
             <th>Description</th>
             <th>Actions</th>
         </tr>
@@ -25,6 +26,7 @@
             <td>{{ ip["id"] }}</td>
             <td>{{ ip["ip_or_cidr_or_asn"] }}</td>
             <td>{{ ip["type"] }}</td>
+            <td>{{ ip["context"] }}</td>
             <td>{{ ip["description"] or "-" }}</td>
             <td>
                 <div style="display: flex; gap: 10px; align-items: center;">

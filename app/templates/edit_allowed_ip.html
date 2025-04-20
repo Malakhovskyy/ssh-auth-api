@@ -17,6 +17,13 @@
         <option value="ASN" {% if allowed_ip['type'] == 'ASN' %}selected{% endif %}>ASN</option>
     </select><br><br>
 
+    <label>Context:</label><br>
+    <select name="context" class="input-standard" required>
+        <option value="api" {% if allowed_ip['context'] == 'api' %}selected{% endif %}>api</option>
+        <option value="admin" {% if allowed_ip['context'] == 'admin' %}selected{% endif %}>admin</option>
+        <option value="both" {% if allowed_ip['context'] == 'both' %}selected{% endif %}>both</option>
+    </select><br><br>
+
     <label>Description:</label><br>
     <input type="text" name="description" class="input-standard" value="{{ allowed_ip['description'] }}"><br><br>
 

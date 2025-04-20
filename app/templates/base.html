@@ -1,0 +1,31 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}SSH Key Manager{% endblock %}</title>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <h2>🔐 SSH Manager</h2>
+            <nav>
+                <a href="/admin/dashboard">🏠 Dashboard</a>
+                <a href="/admin/admins">👤 Manage Admins</a>
+                <a href="/admin/users">👥 Manage Users</a>
+                <a href="/admin/servers">🖥️ Manage Servers</a>
+                <a href="/admin/keys">🔑 Manage SSH Keys</a>
+                <a href="/admin/logs">📝 Admin Logs</a>
+                <a href="/admin/email-logs">✉️ Email Logs</a>
+                <a href="/admin/settings">⚙️ Settings</a>
+                <a href="/admin/logout">🚪 Logout</a>
+            </nav>
+        </aside>
+        <main class="content">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</body>
+</html>

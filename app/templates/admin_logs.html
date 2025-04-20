@@ -1,41 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin Logs - SSH Key Manager</title>
-    <link href="/static/styles.css" rel="stylesheet">
-</head>
-<body>
-    <div class="content-container">
-        <h2>Admin Logs</h2>
+{% extends "base.html" %}
 
-        <table border="1" cellpadding="8">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Admin Username</th>
-                    <th>Action</th>
-                    <th>Object Modified</th>
-                    <th>IP Address</th>
-                    <th>Timestamp</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for log in logs %}
-                <tr>
-                    <td>{{ log["id"] }}</td>
-                    <td>{{ log["admin_username"] }}</td>
-                    <td>{{ log["action"] }}</td>
-                    <td>{{ log["object_modified"] if log["object_modified"] else "-" }}</td>
-                    <td>{{ log["ip_address"] if log["ip_address"] else "-" }}</td>
-                    <td>{{ log["timestamp"] }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+{% block title %}Admin Logs - SSH Key Manager{% endblock %}
 
-        <br>
-        <a href="/admin/dashboard">← Back to Dashboard</a>
-    </div>
-</body>
-</html>
+{% block content %}
+<h1>Admin Logs</h1>
+
+<input type="text" id="searchInput" placeholder="Search logs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+
+<table id="logsTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Action</th>
+            <th>Object Modified</th>
+            <th>IP Address</th>
+            <th>Timestamp</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log["id"] }}</td>
+            <td>{{ log["admin_username"] }}</td>
+            <td>{{ log["action"] }}</td>
+            <td>{{ log["object_modified"] if log["object_modified"] else "-" }}</td>
+            <td>{{ log["ip_address"] if log["ip_address"] else "-" }}</td>
+            <td>{{ log["timestamp"] }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#logsTable tbody tr');
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+{% endblock %}

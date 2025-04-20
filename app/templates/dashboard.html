@@ -1,61 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Dashboard - SSH Key Manager</title>
-    <link href="/static/styles.css" rel="stylesheet">
-    <style>
-        body {
-            display: flex;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        .sidebar {
-            width: 250px;
-            background-color: #f5f5f5;
-            padding: 20px;
-            height: 100vh;
-            box-shadow: 2px 0px 5px rgba(0,0,0,0.1);
-        }
-        .sidebar h3 {
-            margin-top: 0;
-        }
-        .sidebar a {
-            display: block;
-            margin-bottom: 12px;
-            text-decoration: none;
-            color: #333;
-            font-weight: bold;
-        }
-        .sidebar a:hover {
-            text-decoration: underline;
-        }
-        .content {
-            flex: 1;
-            padding: 30px;
-        }
-    </style>
-</head>
-<body>
+{% extends "base.html" %}
 
-<div class="sidebar">
-    <h3>Admin Panel</h3>
-    <a href="/admin/admins">Manage Admins</a> <!-- 🔥 NEW -->
-    <a href="/admin/users">Manage Users</a>
-    <a href="/admin/servers">Manage Servers</a>
-    <a href="/admin/keys">Manage SSH Keys</a>
-    <a href="/admin/api-logs">API Access Logs</a>
-    <a href="/admin/change-password">Change Password</a>
-    <a href="/admin/logout">Logout</a>
-    <a href="/admin/settings">System settings</a>
-    <a href="/admin/logs">Admin Logs</a>
-    <a href="/admin/email-logs">Email Logs</a>
-</div>
+{% block title %}Dashboard - SSH Key Manager{% endblock %}
 
-<div class="content">
-    <h1>Welcome, {{ user }}</h1>
-    <p>Use the menu on the left to manage admins, users, servers, SSH keys, view logs, and change your password.</p>
-</div>
-
-</body>
-</html>
+{% block content %}
+<h1>Welcome, {{ user }}</h1>
+<p>Use the left menu to manage users, servers, SSH keys, logs, and settings.</p>
+{% endblock %}

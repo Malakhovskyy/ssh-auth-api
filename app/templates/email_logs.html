@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Email Logs - SSH Key Manager</title>
+    <link href="/static/styles.css" rel="stylesheet">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Email Logs</h2>
+        <nav>
+            <ul>
+                <li><a href="/admin/dashboard">Dashboard</a></li>
+                <li><a href="/admin/email-logs">Email Logs</a></li>
+                <li><a href="/admin/logout">Logout</a></li>
+            </ul>
+        </nav>
+
+        <table border="1" cellpadding="8">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>To</th>
+                    <th>Subject</th>
+                    <th>Status</th>
+                    <th>Error</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log["id"] }}</td>
+                    <td>{{ log["to_email"] }}</td>
+                    <td>{{ log["subject"] }}</td>
+                    <td>{{ log["status"] }}</td>
+                    <td>{{ log["error_message"] or "-" }}</td>
+                    <td>{{ log["timestamp"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

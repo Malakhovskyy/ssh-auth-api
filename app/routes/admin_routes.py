@@ -614,11 +614,27 @@ async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_
 @admin_router.post("/admin/ssh-keys/unassign/{key_id}/{user_id}")
 async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
+
+    # Fetch key name
+    key_rec = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    key_name = key_rec["key_name"] if key_rec else f"KeyID {key_id}"
+
+    # Fetch username
+    user_rec = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+    username = user_rec["username"] if user_rec else f"UserID {user_id}"
+
+    # Unassign
     conn.execute('DELETE FROM assignments WHERE ssh_key_id = ? AND user_id = ?', (key_id, user_id))
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Unassigned user from SSH key", f"KeyID {key_id} UserID {user_id}")
+    # Log with real names
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Unassigned SSH key from user",
+        f"{key_name} ← {username}"
+    )
+
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Add SSH Key (GET form) --

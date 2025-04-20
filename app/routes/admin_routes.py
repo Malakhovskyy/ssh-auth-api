@@ -2,21 +2,18 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
-from models.models import init_db, get_db_connection, generate_salt, log_admin_action, encrypt_password
+from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
-import os
-from datetime import datetime, timedelta
-from services.token_service import generate_reset_token, verify_reset_token
-from services.email_service import send_password_reset_email
-import secrets
-from hashlib import md5
-
-templates = Jinja2Templates(directory="templates")
-admin_router = APIRouter()
+from services.security_service import update_admin_password
 
 init_db()  # Ensure DB initialized
 
+import os
+from datetime import datetime, timedelta
+
+templates = Jinja2Templates(directory="templates")
+admin_router = APIRouter()
 
 @admin_router.get("/admin/login", response_class=HTMLResponse)
 async def login_page(request: Request):
@@ -29,7 +26,6 @@ async def login(request: Request, username: str = Form(...), password: str = For
         ip_address = x_forwarded_for.split(',')[0].strip()
     else:
         ip_address = request.client.host
-    # ✅ Correct: pass username, password, ip_address
     admin = authenticate_admin(username, password, ip_address)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
@@ -38,12 +34,9 @@ async def login(request: Request, username: str = Form(...), password: str = For
         return RedirectResponse(url="/admin/change-password", status_code=303)
     return RedirectResponse(url="/admin/dashboard", status_code=303)
 
-
 @admin_router.get("/admin/logout")
 async def logout(request: Request):
-    username = request.session.get("admin_user", "unknown")
     logout_admin(request)
-#    log_admin_action(username, "Logged out")
     return RedirectResponse(url="/admin/login")
 
 @admin_router.get("/admin/dashboard", response_class=HTMLResponse)
@@ -55,52 +48,34 @@ async def change_password_page(request: Request):
     return templates.TemplateResponse("change_password.html", {"request": request})
 
 @admin_router.post("/admin/change-password")
-async def change_password(request: Request, 
-                           old_password: str = Form(...), 
-                           new_password: str = Form(...), 
-                           confirm_password: str = Form(...)):
+async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):
     username = request.session.get("admin_user")
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     conn = get_db_connection()
     admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
-
     if not admin:
         conn.close()
         raise HTTPException(status_code=400, detail="Admin not found.")
 
-    # Check old password
-    if encrypt_password(old_password, admin['salt']) != admin['password_md5salted']:
+    if admin['password_md5salted'] != authenticate_admin(username, old_password, "127.0.0.1")['password_md5salted']:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
 
-    # Check new password confirmation
     if new_password != confirm_password:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "New passwords do not match"})
 
-    # Update to new password
-    new_salt = generate_salt()
-    new_hash = encrypt_password(new_password, new_salt)
-
-    conn.execute('''
-        UPDATE admins
-        SET password_md5salted = ?, salt = ?, must_change_password = 0
-        WHERE admin_username = ?
-    ''', (new_hash, new_salt, username))
-
-    conn.commit()
     conn.close()
 
-    log_admin_action(username, "Changed password")
+    success, error = await update_admin_password(username, new_password)
+    if not success:
+        return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
 
+    log_admin_action(username, "Changed password")
     request.session.pop("admin_user", None)
     return RedirectResponse(url="/admin/login", status_code=303)
-
-# Additional admin routes (for managing users, servers, keys) can be added here...
-
-# --- ADD ADMIN (LIST) ---
 
 @admin_router.get("/admin/admins", response_class=HTMLResponse)
 async def admins_page(request: Request, user: str = Depends(get_current_admin_user)):
@@ -109,67 +84,32 @@ async def admins_page(request: Request, user: str = Depends(get_current_admin_us
     conn.close()
     return templates.TemplateResponse("admin_list.html", {"request": request, "admins": admins})
 
-# --- ADD ADMIN (GET + POST) ---
-
 @admin_router.get("/admin/admins/add", response_class=HTMLResponse)
 async def add_admin_page(request: Request, user: str = Depends(get_current_admin_user)):
     return templates.TemplateResponse("admin_add.html", {"request": request})
 
 @admin_router.post("/admin/admins/add")
-async def add_admin(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    confirm_password: str = Form(...),
-    email: str = Form(...)
-):
+async def add_admin(request: Request, username: str = Form(...), password: str = Form(...), confirm_password: str = Form(...), email: str = Form(...)):
     if password != confirm_password:
-        return templates.TemplateResponse(
-            "admin_add.html",
-            {
-                "request": request,
-                "error": "Passwords do not match",
-                "username": username,
-                "email": email
-            }
-        )
+        return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Passwords do not match", "username": username, "email": email})
 
     conn = get_db_connection()
-
-    # Check if username already exists
     existing_admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
     if existing_admin:
         conn.close()
-        return templates.TemplateResponse(
-            "admin_add.html",
-            {
-                "request": request,
-                "error": "Admin username already exists",
-                "username": username,
-                "email": email
-            }
-        )
+        return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Admin username already exists", "username": username, "email": email})
 
-    salt = generate_salt()
-    password_hash = encrypt_password(password, salt)
+    success, error = await update_admin_password(username, password)
+    if not success:
+        conn.close()
+        return templates.TemplateResponse("admin_add.html", {"request": request, "error": error, "username": username, "email": email})
 
-    conn.execute('''
-        INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
-        VALUES (?, ?, ?, ?, 1, 1)
-    ''', (username, email, password_hash, salt))
+    conn.execute('UPDATE admins SET email = ? WHERE admin_username = ?', (email, username))
     conn.commit()
     conn.close()
 
-    # ✅ Log admin action
-    log_admin_action(
-        request.session.get("admin_user"),
-        "Created new admin",
-        object_modified=username
-    )
-
+    log_admin_action(request.session.get("admin_user"), "Created new admin", object_modified=username)
     return RedirectResponse(url="/admin/admins", status_code=303)
-
-# --- EDIT ADMIN (GET + POST) ---
 
 @admin_router.get("/admin/admins/edit/{admin_id}", response_class=HTMLResponse)
 async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
@@ -181,18 +121,8 @@ async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(g
     return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin})
 
 @admin_router.post("/admin/admins/edit/{admin_id}")
-async def edit_admin(
-    admin_id: int,
-    request: Request,
-    email: str = Form(...),
-    password: str = Form(None),
-    confirm_password: str = Form(None),
-    enabled: int = Form(...),
-    force_password_change: int = Form(0)
-):
+async def edit_admin(admin_id: int, request: Request, email: str = Form(...), password: str = Form(None), confirm_password: str = Form(None), enabled: int = Form(...), force_password_change: int = Form(0)):
     conn = get_db_connection()
-
-    # Fetch current admin data
     admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
     if not admin:
         conn.close()
@@ -201,135 +131,20 @@ async def edit_admin(
     if password:
         if password != confirm_password:
             conn.close()
-            return templates.TemplateResponse(
-                "admin_edit.html",
-                {"request": request, "admin": admin, "error": "Passwords do not match"}
-            )
+            return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin, "error": "Passwords do not match"})
 
-        salt = generate_salt()
-        password_hash = encrypt_password(password, salt)
+        success, error = await update_admin_password(admin['admin_username'], password)
+        if not success:
+            conn.close()
+            return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin, "error": error})
 
-        conn.execute('''
-            UPDATE admins
-            SET email = ?, password_md5salted = ?, salt = ?, enabled = ?, must_change_password = ?
-            WHERE id = ?
-        ''', (email, password_hash, salt, enabled, force_password_change, admin_id))
-    else:
-        conn.execute('''
-            UPDATE admins
-            SET email = ?, enabled = ?, must_change_password = ?
-            WHERE id = ?
-        ''', (email, enabled, force_password_change, admin_id))
-
+    conn.execute('UPDATE admins SET email = ?, enabled = ?, must_change_password = ? WHERE id = ?', (email, enabled, force_password_change, admin_id))
     conn.commit()
     conn.close()
 
-    # ✅ Log admin action
-    log_admin_action(
-        request.session.get("admin_user"),
-        "Edited admin",
-        object_modified=admin["admin_username"]
-    )
-
+    log_admin_action(request.session.get("admin_user"), "Edited admin", object_modified=admin["admin_username"])
     return RedirectResponse(url="/admin/admins", status_code=303)
 
-# --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
-
-@admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)
-async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
-    conn.close()
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin not found")
-    return templates.TemplateResponse("admin_delete_confirm.html", {"request": request, "admin": admin})
-
-# --- DELETE ADMIN (AFTER CONFIRM) ---
-
-@admin_router.post("/admin/admins/delete/{admin_id}")
-async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
-
-    if not admin:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Admin not found")
-
-    conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))
-    conn.commit()
-    conn.close()
-
-    # ✅ Correct positional call
-    log_admin_action(
-        request.session.get("admin_user"),
-        "Deleted admin",
-        admin["admin_username"]
-    )
-
-    return RedirectResponse(url="/admin/admins", status_code=303)
-
-# --- ADMIN LOGS ---
-@admin_router.get("/admin/logs", response_class=HTMLResponse)
-async def view_admin_logs(request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    # Fetch admin action logs
-    admin_logs = conn.execute('SELECT id, admin_username, action, object_modified, NULL as ip_address, timestamp FROM admin_logs').fetchall()
-
-    # Fetch login attempts (both success and failed) and map action dynamically
-    login_logs_raw = conn.execute('SELECT id, username as admin_username, success, ip_address, timestamp FROM login_attempts').fetchall()
-
-    login_logs = []
-    for log in login_logs_raw:
-        action_text = "Login Success" if log["success"] else "Login Failed"
-        login_logs.append({
-            "id": log["id"],
-            "admin_username": log["admin_username"],
-            "action": action_text,
-            "object_modified": None,
-            "ip_address": log["ip_address"],
-            "timestamp": log["timestamp"]
-        })
-
-    conn.close()
-
-    # Merge admin_logs + login_logs
-    all_logs = list(admin_logs) + login_logs
-    all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
-
-    return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": all_logs})
-
-
-# --- Request password reset page ---
-@admin_router.get("/admin/request-password-reset", response_class=HTMLResponse)
-async def request_password_reset_page(request: Request):
-    return templates.TemplateResponse("request_password_reset.html", {"request": request})
-
-# --- Handle password reset request ---
-@admin_router.post("/admin/request-password-reset")
-async def request_password_reset(request: Request, email: str = Form(...)):
-    conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE email = ?', (email,)).fetchone()
-    conn.close()
-
-    if not admin:
-        return templates.TemplateResponse("request_password_reset.html", {"request": request, "error": "Email not found."})
-
-    token = generate_reset_token(admin['admin_username'])
-
-    reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
-
-    send_password_reset_email(email, reset_link)
-
-    return templates.TemplateResponse("request_password_reset.html", {"request": request, "message": "Reset link sent to your email."})
-
-# --- Show password reset form ---
-@admin_router.get("/admin/reset-password/{token}", response_class=HTMLResponse)
-async def reset_password_page(token: str, request: Request):
-    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
-
-# --- Handle password reset form submit ---
 @admin_router.post("/admin/reset-password/{token}")
 async def reset_password(token: str, request: Request, new_password: str = Form(...), confirm_password: str = Form(...)):
     if new_password != confirm_password:
@@ -339,12 +154,18 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     if not username:
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
 
-    salt = secrets.token_hex(8)
-    password_hash = encrypt_password(new_password, salt)
-
-    conn = get_db_connection()
-    conn.execute('UPDATE admins SET password_md5salted = ?, salt = ?, must_change_password = 0 WHERE admin_username = ?', (password_hash, salt, username))
-    conn.commit()
-    conn.close()
+    success, error = await update_admin_password(username, new_password)
+    if not success:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
 
     return RedirectResponse(url="/admin/login", status_code=303)
+
+@admin_router.get("/admin/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
+    enforce_complexity = get_setting('enforce_password_complexity') == '1'
+    return templates.TemplateResponse("settings.html", {"request": request, "enforce_complexity": enforce_complexity})
+
+@admin_router.post("/admin/settings")
+async def update_settings(request: Request, enforce_password_complexity: str = Form(None), user: str = Depends(get_current_admin_user)):
+    set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
+    return RedirectResponse(url="/admin/settings", status_code=303)

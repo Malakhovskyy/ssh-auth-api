@@ -41,6 +41,20 @@ def log_admin_action(username, action, object_modified=None):
 def encrypt_password(password: str, salt: str) -> str:
     return hashlib.md5((salt + password).encode('utf-8')).hexdigest()
 
+def get_setting(key: str) -> str:
+    conn = get_db_connection()
+    cursor = conn.execute('SELECT value FROM settings WHERE key = ?', (key,))
+    row = cursor.fetchone()
+    conn.close()
+    return row["value"] if row else None
+
+def set_setting(key: str, value: str):
+    conn = get_db_connection()
+    conn.execute('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)', (key, value))
+    conn.commit()
+    conn.close()
+
+
 def init_db():
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -135,7 +149,12 @@ def init_db():
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
 
 
     # ====== SMART COLUMN ADDITIONS HERE ======
@@ -144,6 +163,11 @@ def init_db():
     if not column_exists(conn, "admins", "enabled"):
         print("[DB INIT] Adding missing 'enabled' column to admins...")
         conn.execute('ALTER TABLE admins ADD COLUMN enabled BOOLEAN DEFAULT 1')
+
+
+# Insert default value if not exists
+    cursor.execute("INSERT OR IGNORE INTO settings (key, value) VALUES ('enforce_password_complexity', '0')")
+
 
     # ====== CREATE DEFAULT ADMIN IF NONE EXIST ======
 

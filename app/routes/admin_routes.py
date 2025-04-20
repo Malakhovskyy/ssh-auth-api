@@ -562,6 +562,7 @@ async def add_ssh_key(
     expiration_date: str = Form(...),
     never_expires: str = Form(None),
     locked: str = Form(None),
+    ssh_key_data: str = Form(...),  # ✅ Add this line!
     user: str = Depends(get_current_admin_user)
 ):
     conn = get_db_connection()
@@ -571,9 +572,13 @@ async def add_ssh_key(
 
     is_locked = 1 if locked else 0
 
+    # ✅ Encrypt the SSH Key content
     encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
-    conn.execute('INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data) VALUES (?, ?, ?, ?)',(key_name, expiration_date, is_locked, encrypted_key_data))
 
+    conn.execute(
+        'INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data) VALUES (?, ?, ?, ?)',
+        (key_name, expiration_date, is_locked, encrypted_key_data)
+    )
     conn.commit()
     conn.close()
 

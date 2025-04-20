@@ -1,15 +1,45 @@
-from fastapi import APIRouter, Request, HTTPException
-from pydantic import BaseModel
-from services.ip_filter_service import is_ip_allowed
+from fastapi import APIRouter, HTTPException
 from models.models import get_db_connection
+from services.ip_filter_service import is_ip_allowed
+from fastapi import Request
 
 api_router = APIRouter()
 
-class SSHKeyRequest(BaseModel):
-    server_name: str
-    username: str
+@api_router.get("/ssh-keys/{server}/{username}")
+async def get_ssh_key(server: str, username: str, request: Request):
+    client_ip = request.client.host
 
-# Log API access attempt
+    if not is_ip_allowed(client_ip):
+        log_api_access(server, username, client_ip, "BLOCKED", "IP not allowed")
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    conn = get_db_connection()
+    user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+    server_rec = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server,)).fetchone()
+
+    if not user or not server_rec:
+        conn.close()
+        log_api_access(server, username, client_ip, "NOT FOUND", "User or Server not found")
+        raise HTTPException(status_code=404, detail="User or server not found")
+
+    assignment = conn.execute('SELECT * FROM assignments WHERE user_id = ? AND server_id = ?', (user["id"], server_rec["id"])).fetchone()
+    if not assignment:
+        conn.close()
+        log_api_access(server, username, client_ip, "NOT ASSIGNED", "User not assigned to server")
+        raise HTTPException(status_code=404, detail="User not assigned to server")
+
+    keys = conn.execute('SELECT ssh_key FROM ssh_keys WHERE user_id = ?', (user["id"],)).fetchall()
+    conn.close()
+
+    if not keys:
+        log_api_access(server, username, client_ip, "NO KEYS", "No SSH keys found")
+        raise HTTPException(status_code=404, detail="No SSH keys found")
+
+    ssh_keys = "\n".join([k["ssh_key"] for k in keys])
+
+    log_api_access(server, username, client_ip, "SUCCESS", "SSH keys provided")
+    return ssh_keys
+
 def log_api_access(server, username, client_ip, status, reason):
     conn = get_db_connection()
 
@@ -22,35 +52,3 @@ def log_api_access(server, username, client_ip, status, reason):
 
     conn.commit()
     conn.close()
-
-@api_router.post("/ssh-key")
-async def get_ssh_key(request: Request, ssh_req: SSHKeyRequest):
-    client_ip = request.client.host
-    server = ssh_req.server_name
-    username = ssh_req.username
-
-    if not is_ip_allowed(client_ip):
-        log_api_access(server, username, client_ip, "BLOCKED", "IP not allowed")
-        raise HTTPException(status_code=403, detail="Access Denied")
-
-    conn = get_db_connection()
-
-    # Find SSH key assigned for user
-    result = conn.execute('''
-        SELECT ssh_keys.ssh_key_data
-        FROM assignments
-        JOIN ssh_keys ON assignments.ssh_key_id = ssh_keys.id
-        JOIN users ON assignments.user_id = users.id
-        WHERE users.username = ? 
-    ''', (username,)).fetchone()
-
-    conn.close()
-
-    if not result:
-        log_api_access(server, username, client_ip, "BLOCKED", "User not assigned or SSH Key missing")
-        raise HTTPException(status_code=404, detail="SSH Key not found")
-
-    ssh_key_data = result["ssh_key_data"]
-
-    log_api_access(server, username, client_ip, "SUCCESS", "Key provided")
-    return {"ssh_key": ssh_key_data}

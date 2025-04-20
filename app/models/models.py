@@ -79,10 +79,13 @@ def init_db():
         )
     ''')
 
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users (
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL
+            username TEXT UNIQUE NOT NULL,
+            email TEXT,
+            expiration_date DATETIME,
+            locked BOOLEAN DEFAULT 0
         )
     ''')
 

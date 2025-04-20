@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Add SSH User - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Add SSH User</h1>
+
+<form method="post" action="/admin/ssh-users/add">
+
+    <label>Username:</label><br>
+    <input type="text" name="username" class="input-standard" required><br><br>
+
+    <label>Email:</label><br>
+    <input type="email" name="email" class="input-standard"><br><br>
+
+    <label>Expiration Date:</label><br>
+    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" required><br><br>
+
+    <label>
+        <input type="checkbox" id="never_expires" name="never_expires">
+        Never Expires
+    </label><br><br>
+
+    <label>
+        <input type="checkbox" name="locked">
+        Locked
+    </label><br><br>
+
+    <button type="submit">Create SSH User</button>
+
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<script>
+// Flatpickr calendar + clock
+flatpickr("#expiration_date", {
+    enableTime: true,
+    dateFormat: "Y-m-d H:i:S",
+});
+
+// Auto-disable expiration date if Never Expires is checked
+document.getElementById('never_expires').addEventListener('change', function() {
+    const expirationInput = document.getElementById('expiration_date');
+    if (this.checked) {
+        expirationInput.value = "2099-12-31 23:59:59";
+        expirationInput.disabled = true;
+    } else {
+        expirationInput.disabled = false;
+        expirationInput.value = "";
+    }
+});
+</script>
+
+<br><a href="/admin/ssh-users">← Back to SSH Users List</a>
+
+{% endblock %}

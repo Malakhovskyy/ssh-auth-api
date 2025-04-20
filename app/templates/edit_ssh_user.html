@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Edit SSH User - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Edit SSH User: {{ user_data["username"] }}</h1>
+
+<form method="post" action="/admin/ssh-users/edit/{{ user_data['id'] }}">
+
+    <label>Username:</label><br>
+    <input type="text" name="username" class="input-standard" value="{{ user_data['username'] }}" required><br><br>
+
+    <label>Email:</label><br>
+    <input type="email" name="email" class="input-standard" value="{{ user_data['email'] }}"><br><br>
+
+    <label>Expiration Date:</label><br>
+    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" value="{{ user_data['expiration_date'] }}" required><br><br>
+
+    <label>
+        <input type="checkbox" id="never_expires" name="never_expires"
+        {% if user_data['expiration_date'] == '2099-12-31 23:59:59' %}checked{% endif %}>
+        Never Expires
+    </label><br><br>
+
+    <label>
+        <input type="checkbox" name="locked"
+        {% if user_data['locked'] == 1 %}checked{% endif %}>
+        Locked
+    </label><br><br>
+
+    <button type="submit">Save Changes</button>
+
+</form>
+
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+
+<script>
+// Flatpickr calendar + clock
+flatpickr("#expiration_date", {
+    enableTime: true,
+    dateFormat: "Y-m-d H:i:S",
+});
+
+// Auto-disable expiration date if Never Expires is checked
+document.getElementById('never_expires').addEventListener('change', function() {
+    const expirationInput = document.getElementById('expiration_date');
+    if (this.checked) {
+        expirationInput.value = "2099-12-31 23:59:59";
+        expirationInput.disabled = true;
+    } else {
+        expirationInput.disabled = false;
+    }
+});
+
+// If page loads and Never Expires is already checked
+window.addEventListener('DOMContentLoaded', function() {
+    const expirationInput = document.getElementById('expiration_date');
+    if (document.getElementById('never_expires').checked) {
+        expirationInput.disabled = true;
+    }
+});
+</script>
+
+<br><a href="/admin/ssh-users">← Back to SSH Users List</a>
+
+{% endblock %}

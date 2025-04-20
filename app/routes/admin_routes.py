@@ -322,4 +322,134 @@ async def view_email_logs(request: Request, user: str = Depends(get_current_admi
     email_logs = conn.execute('SELECT * FROM email_logs ORDER BY timestamp DESC').fetchall()
     conn.close()
 
-    return templates.TemplateResponse("email_logs.html", {"request": request, "logs": email_logs})   
+    return templates.TemplateResponse("email_logs.html", {"request": request, "logs": email_logs})
+
+
+
+# -- List SSH Users --
+@admin_router.get("/admin/ssh-users", response_class=HTMLResponse)
+async def ssh_users_list(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    users = conn.execute('SELECT * FROM users').fetchall()
+    conn.close()
+    return templates.TemplateResponse("ssh_users.html", {"request": request, "users": users})
+
+# -- Add SSH User (GET page) --
+@admin_router.get("/admin/ssh-users/add", response_class=HTMLResponse)
+async def add_ssh_user_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_ssh_user.html", {"request": request})
+
+# -- Add SSH User (POST save) --
+@admin_router.post("/admin/ssh-users/add")
+async def add_ssh_user(
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(""),
+    expiration_date: str = Form(...),
+    never_expires: str = Form(None),
+    locked: str = Form(None),
+    user: str = Depends(get_current_admin_user)
+):
+    conn = get_db_connection()
+
+    if never_expires:
+        expiration_date = "2099-12-31 23:59:59"
+
+    is_locked = 1 if locked else 0
+
+    conn.execute(
+        'INSERT INTO users (username, email, expiration_date, locked) VALUES (?, ?, ?, ?)',
+        (username, email, expiration_date, is_locked)
+    )
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Created SSH user", username)
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+# -- Edit SSH User (GET page) --
+@admin_router.get("/admin/ssh-users/edit/{user_id}", response_class=HTMLResponse)
+async def edit_ssh_user_page(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    conn.close()
+
+    if not user_data:
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "user_data": user_data})
+
+# -- Edit SSH User (POST save) --
+@admin_router.post("/admin/ssh-users/edit/{user_id}")
+async def edit_ssh_user(
+    user_id: int,
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(""),
+    expiration_date: str = Form(...),
+    never_expires: str = Form(None),
+    locked: str = Form(None),
+    user: str = Depends(get_current_admin_user)
+):
+    conn = get_db_connection()
+
+    if never_expires:
+        expiration_date = "2099-12-31 23:59:59"
+
+    is_locked = 1 if locked else 0
+
+    conn.execute(
+        'UPDATE users SET username = ?, email = ?, expiration_date = ?, locked = ? WHERE id = ?',
+        (username, email, expiration_date, is_locked, user_id)
+    )
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Edited SSH user", username)
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+# -- Delete SSH User --
+@admin_router.post("/admin/ssh-users/delete/{user_id}")
+async def delete_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user_data:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Deleted SSH user", user_data["username"])
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+# -- Lock SSH User --
+@admin_router.post("/admin/ssh-users/lock/{user_id}")
+async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    conn.execute('UPDATE users SET locked = 1 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Locked SSH user", str(user_id))
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+# -- Unlock SSH User --
+@admin_router.post("/admin/ssh-users/unlock/{user_id}")
+async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    conn.execute('UPDATE users SET locked = 0 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("admin_user"), "Unlocked SSH user", str(user_id))
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)

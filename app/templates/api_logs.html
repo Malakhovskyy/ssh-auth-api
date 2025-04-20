@@ -7,6 +7,7 @@
 
 <input type="text" id="searchInput" placeholder="Search API Logs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
 
+{% if api_logs %}
 <table id="apiLogsTable">
     <thead>
         <tr>
@@ -39,6 +40,9 @@
         {% endfor %}
     </tbody>
 </table>
+{% else %}
+<p style="text-align: center; font-size: 18px; margin-top: 40px;">No matching API logs found.</p>
+{% endif %}
 
 <script>
 // Simple real-time search

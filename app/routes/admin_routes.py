@@ -1066,7 +1066,22 @@ async def delete_allowed_ip(allowed_id: int, request: Request, user: str = Depen
 # API LOGS
 @admin_router.get("/admin/api-logs", response_class=HTMLResponse)
 async def api_logs_page(request: Request, user: str = Depends(get_current_admin_user)):
+    search = request.query_params.get("search", "").strip()
     conn = get_db_connection()
-    api_logs = conn.execute('SELECT * FROM api_logs ORDER BY timestamp DESC').fetchall()
+    if search:
+        query = """
+        SELECT * FROM api_logs
+        WHERE LOWER(username) LIKE ?
+           OR LOWER(server_name) LIKE ?
+           OR LOWER(client_ip) LIKE ?
+           OR LOWER(reason) LIKE ?
+        ORDER BY timestamp DESC
+        LIMIT 100
+        """
+        pattern = f"%{search.lower()}%"
+        api_logs = conn.execute(query, (pattern, pattern, pattern, pattern)).fetchall()
+    else:
+        query = "SELECT * FROM api_logs ORDER BY timestamp DESC LIMIT 100"
+        api_logs = conn.execute(query).fetchall()
     conn.close()
-    return templates.TemplateResponse("api_logs.html", {"request": request, "api_logs": api_logs})
+    return templates.TemplateResponse("api_logs.html", {"request": request, "api_logs": api_logs, "search": search})

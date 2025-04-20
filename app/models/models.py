@@ -111,7 +111,8 @@ def init_db():
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             key_name TEXT UNIQUE NOT NULL,
             expiration_date DATETIME,
-            locked BOOLEAN DEFAULT 0
+            locked BOOLEAN DEFAULT 0,
+            ssh_key_data TEXT
         )
     ''')
 

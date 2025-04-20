@@ -571,10 +571,9 @@ async def add_ssh_key(
 
     is_locked = 1 if locked else 0
 
-    conn.execute(
-        'INSERT INTO ssh_keys (key_name, expiration_date, locked) VALUES (?, ?, ?)',
-        (key_name, expiration_date, is_locked)
-    )
+    encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
+    conn.execute('INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data) VALUES (?, ?, ?, ?)',(key_name, expiration_date, is_locked, encrypted_key_data))
+
     conn.commit()
     conn.close()
 

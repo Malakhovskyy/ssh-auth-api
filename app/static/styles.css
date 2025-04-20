@@ -175,3 +175,13 @@ table tr:hover {
 input[type="number"].input-standard {
     width: 25px !important;
 }
+
+.input-standard-textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-sizing: border-box;
+    font-family: monospace; /* nice for keys */
+    font-size: 14px;
+}

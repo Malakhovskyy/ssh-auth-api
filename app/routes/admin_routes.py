@@ -672,6 +672,22 @@ async def add_ssh_key(
 ):
     conn = get_db_connection()
 
+    # Check if SSH key with the same key_name already exists
+    existing_key = conn.execute('SELECT id FROM ssh_keys WHERE key_name = ?', (key_name,)).fetchone()
+    if existing_key:
+        conn.close()
+        return templates.TemplateResponse(
+            "add_ssh_key.html",
+            {
+                "request": request,
+                "error": "SSH Key with this name already exists.",
+                "prefill_key_name": key_name,
+                "prefill_expiration_date": expiration_date,
+                "prefill_ssh_key_data": ssh_key_data,
+                "prefill_locked": locked
+            }
+        )
+
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
 

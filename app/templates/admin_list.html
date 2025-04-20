@@ -7,7 +7,9 @@
 
 <a href="/admin/admins/add"><button style="margin-bottom: 20px;">➕ Add New Admin</button></a>
 
-<table>
+<input type="text" id="searchInput" placeholder="Search admins..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+
+<table id="adminsTable">
     <thead>
         <tr>
             <th>ID</th>
@@ -25,12 +27,13 @@
             <td>{{ admin["email"] }}</td>
             <td>{{ "Yes" if admin["enabled"] else "No" }}</td>
             <td>
-                <a href="/admin/admins/edit/{{ admin['id'] }}">✏️ Edit</a>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <a href="/admin/admins/edit/{{ admin['id'] }}" style="text-decoration: none; color: #007bff;">✏️ Edit</a>
 
-                <!-- Inline Delete Button -->
-                <form method="post" action="/admin/admins/delete/{{ admin['id'] }}" style="display:inline;" onsubmit="return confirmDelete();">
-                    <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
-                </form>
+                    <form method="post" action="/admin/admins/delete/{{ admin['id'] }}" onsubmit="return confirmDelete();" style="margin: 0;">
+                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
+                    </form>
+                </div>
             </td>
         </tr>
         {% endfor %}
@@ -38,9 +41,19 @@
 </table>
 
 <script>
+// Simple client-side search
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#adminsTable tbody tr');
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+
+// Confirm before deleting
 function confirmDelete() {
     return confirm("Are you sure you want to delete this admin?");
 }
 </script>
-
 {% endblock %}

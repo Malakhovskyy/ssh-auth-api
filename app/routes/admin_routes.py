@@ -174,3 +174,40 @@ async def settings_page(request: Request, user: str = Depends(get_current_admin_
 async def update_settings(request: Request, enforce_password_complexity: str = Form(None), user: str = Depends(get_current_admin_user)):
     set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
     return RedirectResponse(url="/admin/settings", status_code=303)
+
+
+# --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
+
+@admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)
+async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    conn.close()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Admin not found")
+    return templates.TemplateResponse("admin_delete_confirm.html", {"request": request, "admin": admin})
+
+# --- DELETE ADMIN (AFTER CONFIRM) ---
+
+@admin_router.post("/admin/admins/delete/{admin_id}")
+async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+
+    if not admin:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Admin not found")
+
+    conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))
+    conn.commit()
+    conn.close()
+
+    # ✅ Correct positional call
+    log_admin_action(
+        request.session.get("admin_user"),
+        "Deleted admin",
+        admin["admin_username"]
+    )
+
+    return RedirectResponse(url="/admin/admins", status_code=303)

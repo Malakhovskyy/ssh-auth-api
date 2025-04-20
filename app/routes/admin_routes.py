@@ -936,3 +936,11 @@ async def delete_allowed_ip(allowed_id: int, request: Request, user: str = Depen
     log_admin_action(request.session.get("admin_user"), "Deleted Allowed IP/ASN", allowed_ip["ip_or_cidr_or_asn"])
 
     return RedirectResponse(url="/admin/allowed-ips", status_code=303)
+
+# API LOGS
+@admin_router.get("/admin/api-logs", response_class=HTMLResponse)
+async def api_logs_page(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    api_logs = conn.execute('SELECT * FROM api_logs ORDER BY timestamp DESC').fetchall()
+    conn.close()
+    return templates.TemplateResponse("api_logs.html", {"request": request, "api_logs": api_logs})

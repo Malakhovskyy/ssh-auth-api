@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}API Access Logs - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>API Access Logs</h1>
+
+<input type="text" id="searchInput" placeholder="Search API Logs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+
+<table id="apiLogsTable">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Timestamp</th>
+            <th>Server Name</th>
+            <th>Username</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for log in api_logs %}
+        <tr>
+            <td>{{ log["id"] }}</td>
+            <td>{{ log["timestamp"] }}</td>
+            <td>{{ log["server_name"] }}</td>
+            <td>{{ log["username"] }}</td>
+            <td>
+                {% if log["success"] %}
+                    <span style="color: green;">✔️ Success</span>
+                {% else %}
+                    <span style="color: red;">❌ Blocked</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+// Simple real-time search
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#apiLogsTable tbody tr');
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+
+{% endblock %}

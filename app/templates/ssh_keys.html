@@ -24,16 +24,18 @@
         <tr>
             <td>{{ key["key_name"] }}</td>
             <td>
-                {% for user in key["assigned_users"] %}
-                    <span style="margin-right: 5px;">
-                        {{ user["username"] }}
-                        <form method="post" action="/admin/ssh-keys/unassign/{{ key['id'] }}/{{ user['id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
-                            <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
-                        </form>
-                    </span>
-                {% else %}
-                    No users
-                {% endfor %}
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    {% for user in key["assigned_users"] %}
+                        <div style="display: flex; align-items: center;">
+                            <span>{{ user["username"] }}</span>
+                            <form method="post" action="/admin/ssh-keys/unassign/{{ key['id'] }}/{{ user['id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
+                                <button type="submit" style="background: none; border: none; color: red; cursor: pointer; margin-left: 5px;">❌</button>
+                            </form>
+                        </div>
+                    {% else %}
+                        No users
+                    {% endfor %}
+                </div>
             </td>
             <td>{{ key["expiration_date"] or "-" }}</td>
             <td>{{ "🔒 Locked" if key["locked"] else "🔓 Active" }}</td>

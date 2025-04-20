@@ -7,6 +7,8 @@
 
 <a href="/admin/ssh-users/add"><button style="margin-bottom: 20px;">➕ Add User</button></a>
 
+<input type="text" id="searchInput" placeholder="Search SSH Users..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+
 <table id="sshUsersTable">
     <thead>
         <tr>
@@ -65,5 +67,30 @@ function confirmUnlock() {
     return confirm("Are you sure you want to unlock this SSH user?");
 }
 </script>
+
+<script>
+    // Confirm dialogs
+    function confirmDelete() {
+        return confirm("Are you sure you want to delete this SSH user?");
+    }
+    
+    function confirmLock() {
+        return confirm("Are you sure you want to lock this SSH user?");
+    }
+    
+    function confirmUnlock() {
+        return confirm("Are you sure you want to unlock this SSH user?");
+    }
+    
+    // Simple real-time search
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        let filter = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#sshUsersTable tbody tr');
+        rows.forEach(row => {
+            let text = row.innerText.toLowerCase();
+            row.style.display = text.includes(filter) ? '' : 'none';
+        });
+    });
+    </script>
 
 {% endblock %}

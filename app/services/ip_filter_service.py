@@ -3,6 +3,8 @@ import sqlite3
 import socket
 import time
 from models.models import get_db_connection
+import dns.resolver
+
 
 # In-memory cache for ASN lookups
 asn_cache = {}
@@ -42,6 +44,21 @@ def get_asn_for_ip(ip):
         asn, timestamp = asn_cache[ip]
         if current_time - timestamp < 43200:  # 12 hours cache
             return asn
+
+    try:
+        reversed_ip = ".".join(reversed(ip.split(".")))
+        query = f"{reversed_ip}.origin.asn.cymru.com"
+
+        # Resolve TXT record (correct for ASN lookup)
+        answers = dns.resolver.resolve(query, "TXT")
+        response = str(answers[0])
+
+        # Response format typically: '"ASN | ..."' --> we extract ASN
+        asn = "AS" + response.strip('"').split()[0]
+        asn_cache[ip] = (asn, current_time)
+        return asn
+    except Exception:
+        return None
 
     try:
         reversed_ip = ".".join(reversed(ip.split(".")))

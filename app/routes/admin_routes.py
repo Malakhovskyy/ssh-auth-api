@@ -150,29 +150,45 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
     log_admin_action(request.session.get("admin_user"), "Edited admin", object_modified=admin["admin_username"])
     return RedirectResponse(url="/admin/admins", status_code=303)
 
-@admin_router.post("/admin/reset-password/{token}")
-async def reset_password(token: str, request: Request, new_password: str = Form(...), confirm_password: str = Form(...)):
-    if new_password != confirm_password:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Passwords do not match."})
+# @admin_router.post("/admin/reset-password/{token}")
+# async def reset_password(token: str, request: Request, new_password: str = Form(...), confirm_password: str = Form(...)):
+#     if new_password != confirm_password:
+#         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Passwords do not match."})
 
-    username = verify_reset_token(token)
-    if not username:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
+#     username = verify_reset_token(token)
+#     if not username:
+#         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
 
-    success, error = await update_admin_password(username, new_password)
-    if not success:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
+#     success, error = await update_admin_password(username, new_password)
+#     if not success:
+#         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
 
-    return RedirectResponse(url="/admin/login", status_code=303)
+#     return RedirectResponse(url="/admin/login", status_code=303)
 
+
+
+#settings#
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
-    enforce_complexity = get_setting('enforce_password_complexity') == '1'
-    return templates.TemplateResponse("settings.html", {"request": request, "enforce_complexity": enforce_complexity})
+    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
+    return templates.TemplateResponse("settings.html", {"request": request, "settings": settings})
 
 @admin_router.post("/admin/settings")
-async def update_settings(request: Request, enforce_password_complexity: str = Form(None), user: str = Depends(get_current_admin_user)):
+async def update_settings(
+    request: Request,
+    enforce_password_complexity: str = Form(None),
+    smtp_host: str = Form(""),
+    smtp_port: str = Form(""),
+    smtp_user: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_from: str = Form("")
+):
     set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
+    set_setting('smtp_host', smtp_host)
+    set_setting('smtp_port', smtp_port)
+    set_setting('smtp_user', smtp_user)
+    set_setting('smtp_password', smtp_password)
+    set_setting('smtp_from', smtp_from)
     return RedirectResponse(url="/admin/settings", status_code=303)
 
 

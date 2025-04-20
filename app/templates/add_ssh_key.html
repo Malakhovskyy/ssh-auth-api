@@ -5,6 +5,10 @@
 {% block content %}
 <h1>Add SSH Key</h1>
 
+{% if error %}
+<div class="error" style="color: red;">{{ error }}</div>
+{% endif %}
+
 <form method="post" action="/admin/ssh-keys/add">
 
     <label>SSH Key Name:</label><br>

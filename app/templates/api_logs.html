@@ -14,7 +14,9 @@
             <th>Timestamp</th>
             <th>Server Name</th>
             <th>Username</th>
+            <th>Client IP</th>
             <th>Status</th>
+            <th>Reason</th>
         </tr>
     </thead>
     <tbody>
@@ -24,6 +26,7 @@
             <td>{{ log["timestamp"] }}</td>
             <td>{{ log["server_name"] }}</td>
             <td>{{ log["username"] }}</td>
+            <td>{{ log["client_ip"] or "-" }}</td>
             <td>
                 {% if log["success"] %}
                     <span style="color: green;">✔️ Success</span>
@@ -31,6 +34,7 @@
                     <span style="color: red;">❌ Blocked</span>
                 {% endif %}
             </td>
+            <td>{{ log["reason"] or "-" }}</td>
         </tr>
         {% endfor %}
     </tbody>

@@ -132,7 +132,9 @@ def init_db():
             username TEXT,
             server_name TEXT,
             success BOOLEAN,
-            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            client_ip TEXT,
+            reason TEXT
         )
     ''')
 

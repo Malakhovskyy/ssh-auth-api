@@ -28,6 +28,7 @@ def is_ip_allowed(ip):
 
         elif src_type == "asn":
             asn = get_asn_for_ip(ip)
+            print(f"[DEBUG] ASN lookup for IP {ip}: {asn}")  # 🔥 ADD DEBUG LOG HERE
             if asn and asn.upper() == value.upper():
                 return True
 
@@ -36,10 +37,10 @@ def is_ip_allowed(ip):
 def get_asn_for_ip(ip):
     current_time = time.time()
 
-    # Check cache first
     if ip in asn_cache:
         asn, timestamp = asn_cache[ip]
         if current_time - timestamp < 43200:  # 12 hours cache
+            print(f"[DEBUG] ASN cache hit for {ip}: {asn}")  # 🔥 Cache debug
             return asn
 
     try:
@@ -65,6 +66,8 @@ def get_asn_for_ip(ip):
             if len(parts) > 0:
                 asn = "AS" + parts[0].strip()
                 asn_cache[ip] = (asn, current_time)
+                print(f"[DEBUG] ASN resolved for {ip}: {asn}")  # 🔥 Lookup debug
                 return asn
-    except Exception:
+    except Exception as e:
+        print(f"[ERROR] ASN lookup failed for {ip}: {e}")  # 🔥 Error debug
         return None

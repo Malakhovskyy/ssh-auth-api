@@ -20,20 +20,6 @@
         <tr>
             <td>{{ server["server_name"] }}</td>
             <td>
-                {% if server["assigned_users"] %}
-                    {% for user in server["assigned_users"] %}
-                        <div style="margin-bottom: 5px;">
-                            {{ user["username"] }} ({{ user["key_name"] }})
-                            <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
-                                <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
-                            </form>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    No users assigned
-                {% endif %}
-            </td>
-            <td>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     {% if server["assigned_users"] %}
                         {% for user in server["assigned_users"] %}
@@ -49,6 +35,22 @@
                     {% endif %}
                 </div>
             </td>
+<td>
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+        {% if server["assigned_users"] %}
+            {% for user in server["assigned_users"] %}
+                <div style="display: flex; align-items: center; gap: 5px;">
+                    <span>{{ user["username"] }} ({{ user["key_name"] }})</span>
+                    <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
+                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
+                    </form>
+                </div>
+            {% endfor %}
+        {% else %}
+            No users assigned
+        {% endif %}
+    </div>
+</td>
         </tr>
         {% endfor %}
     </tbody>

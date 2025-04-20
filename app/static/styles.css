@@ -170,3 +170,8 @@ table tr:hover {
     border-radius: 6px;
     margin-bottom: 20px;
 }
+
+/* Force number fields to match */
+input[type="number"].input-standard {
+    width: 25px !important;
+}

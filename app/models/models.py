@@ -54,6 +54,14 @@ def set_setting(key: str, value: str):
     conn.commit()
     conn.close()
 
+def log_email(to_email: str, subject: str, status: str, error_message: str = None):
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO email_logs (to_email, subject, status, error_message)
+        VALUES (?, ?, ?, ?)
+    ''', (to_email, subject, status, error_message))
+    conn.commit()
+    conn.close()
 
 def init_db():
     conn = get_db_connection()
@@ -156,6 +164,16 @@ def init_db():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS email_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            to_email TEXT NOT NULL,
+            subject TEXT NOT NULL,
+            status TEXT NOT NULL, -- "Success" or "Failed"
+            error_message TEXT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
 
     # ====== SMART COLUMN ADDITIONS HERE ======
 

@@ -1,7 +1,22 @@
 <form method="post">
-    <label>
-        <input type="checkbox" name="enforce_password_complexity" {% if enforce_complexity %}checked{% endif %}>
-        Enforce Password Complexity
-    </label>
-    <button type="submit">Save</button>
+    <label><input type="checkbox" name="enforce_password_complexity" {% if settings.enforce_password_complexity == '1' %}checked{% endif %}>
+    Enforce Password Complexity</label><br><br>
+
+    <h3>SMTP Settings</h3>
+    <label>SMTP Host:</label><br>
+    <input type="text" name="smtp_host" value="{{ settings.smtp_host }}"><br><br>
+
+    <label>SMTP Port:</label><br>
+    <input type="text" name="smtp_port" value="{{ settings.smtp_port }}"><br><br>
+
+    <label>SMTP Username:</label><br>
+    <input type="text" name="smtp_user" value="{{ settings.smtp_user }}"><br><br>
+
+    <label>SMTP Password:</label><br>
+    <input type="password" name="smtp_password" value="{{ settings.smtp_password }}"><br><br>
+
+    <label>From Email Address:</label><br>
+    <input type="text" name="smtp_from" value="{{ settings.smtp_from }}"><br><br>
+
+    <button type="submit">Save Settings</button>
 </form>

@@ -236,8 +236,49 @@ async def view_admin_logs(request: Request, user: str = Depends(get_current_admi
 
     conn.close()
 
-    # Merge admin_logs + login_logs
+# Merge admin_logs + login_logs
     all_logs = list(admin_logs) + login_logs
     all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
 
     return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": all_logs})
+
+
+# --- Forgot Password ---
+@admin_router.get("/admin/forgot-password", response_class=HTMLResponse)
+async def forgot_password_page(request: Request):
+    return templates.TemplateResponse("forgot_password.html", {"request": request})
+
+@admin_router.post("/admin/forgot-password")
+async def forgot_password(request: Request, email: str = Form(...)):
+    conn = get_db_connection()
+    admin = conn.execute('SELECT * FROM admins WHERE email = ?', (email,)).fetchone()
+    conn.close()
+
+    if not admin:
+        return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Email not found."})
+
+    token = generate_reset_token(admin['admin_username'])
+    reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
+
+    send_password_reset_email(email, reset_link)
+
+    return templates.TemplateResponse("forgot_password.html", {"request": request, "message": "Password reset link sent to your email."})
+
+@admin_router.get("/admin/reset-password/{token}", response_class=HTMLResponse)
+async def reset_password_page(token: str, request: Request):
+    return templates.TemplateResponse("reset_password.html", {"request": request, "token": token})
+
+@admin_router.post("/admin/reset-password/{token}")
+async def reset_password(token: str, request: Request, new_password: str = Form(...), confirm_password: str = Form(...)):
+    if new_password != confirm_password:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Passwords do not match."})
+
+    username = verify_reset_token(token)
+    if not username:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
+
+    success, error = await update_admin_password(username, new_password)
+    if not success:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
+
+    return RedirectResponse(url="/admin/login", status_code=303)

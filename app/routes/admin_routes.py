@@ -433,11 +433,20 @@ async def delete_ssh_user(user_id: int, request: Request, user: str = Depends(ge
 async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
+    row = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    username = row["username"]  # ✅ Save username into variable
+
     conn.execute('UPDATE users SET locked = 1 WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Locked SSH user", user_data["username"])
+    # ✅ Now safe to log
+    log_admin_action(request.session.get("admin_user"), "Locked SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
@@ -446,10 +455,18 @@ async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_
 async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
+    row = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    username = row["username"]
+
     conn.execute('UPDATE users SET locked = 0 WHERE id = ?', (user_id,))
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Unlocked SSH user", user_data["username"])
+    log_admin_action(request.session.get("admin_user"), "Unlocked SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
+from services.ip_filter_service import is_admin_ip_allowed
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
@@ -31,6 +32,12 @@ async def login(request: Request, username: str = Form(...), password: str = For
         ip_address = x_forwarded_for.split(',')[0].strip()
     else:
         ip_address = request.client.host
+
+    restrict_admin_ip = get_setting('restrict_admin_ip')
+    if restrict_admin_ip == '1':
+        if not is_admin_ip_allowed(ip_address):
+            return templates.TemplateResponse("access_denied.html", {"request": request})
+
     admin = authenticate_admin(username, password, ip_address)
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
@@ -160,7 +167,7 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
 # settings #
 @admin_router.get("/admin/settings", response_class=HTMLResponse)
 async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
-    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "admin_session_timeout", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
+    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "restrict_admin_ip", "admin_session_timeout", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
     success = request.query_params.get("success")  # ✅ Read from query params
     return templates.TemplateResponse(
         "settings.html",
@@ -186,12 +193,12 @@ async def update_settings(
     smtp_from: str = Form("")
 ):
     set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
+    set_setting('restrict_admin_ip', '1' if restrict_admin_ip else '0')
     set_setting('admin_session_timeout', admin_session_timeout)
     set_setting('domain', domain)
     set_setting('smtp_host', smtp_host)
     set_setting('smtp_port', smtp_port)
     set_setting('smtp_user', smtp_user)
-
     smtp_password = smtp_password.strip()
 
     if smtp_password:

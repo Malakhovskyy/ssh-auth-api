@@ -71,3 +71,26 @@ def get_asn_for_ip(ip):
     except Exception as e:
         print(f"[ERROR] ASN lookup failed for {ip}: {e}")  # 🔥 Error debug
         return None
+        
+def is_admin_ip_allowed(ip):
+    conn = get_db_connection()
+    allowed_sources = conn.execute('SELECT * FROM allowed_api_sources WHERE context IN ("admin", "both")').fetchall()
+    conn.close()
+
+    for source in allowed_sources:
+        src_type = source["type"].lower()
+        value = source["ip_or_cidr_or_asn"]
+
+        if src_type == "ip" and ip == value:
+            return True
+        elif src_type == "cidr":
+            try:
+                if ipaddress.ip_address(ip) in ipaddress.ip_network(value, strict=False):
+                    return True
+            except ValueError:
+                continue
+        elif src_type == "asn":
+            asn = get_asn_for_ip(ip)
+            if asn and asn.upper() == value.upper():
+                return True
+    return False

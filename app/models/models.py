@@ -99,19 +99,19 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS assignments (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            server_id INTEGER,
-            FOREIGN KEY(user_id) REFERENCES users(id),
-            FOREIGN KEY(server_id) REFERENCES servers(id)
+            ssh_key_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            FOREIGN KEY (ssh_key_id) REFERENCES ssh_keys(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
         )
     ''')
 
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ssh_keys (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER,
-            ssh_key TEXT NOT NULL,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+            key_name TEXT UNIQUE NOT NULL,
+            expiration_date DATETIME,
+            locked BOOLEAN DEFAULT 0
         )
     ''')
 

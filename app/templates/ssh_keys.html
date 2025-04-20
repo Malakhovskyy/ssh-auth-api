@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block title %}SSH Keys - SSH Key Manager{% endblock %}
+
+{% block content %}
+<h1>Manage SSH Keys</h1>
+
+<a href="/admin/ssh-keys/add"><button style="margin-bottom: 20px;">➕ Add SSH Key</button></a>
+
+<input type="text" id="searchInput" placeholder="Search SSH Keys..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+
+<table id="sshKeysTable">
+    <thead>
+        <tr>
+            <th>SSH Key Name</th>
+            <th>Assigned Users</th>
+            <th>Expiration Date</th>
+            <th>Locked</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for key in ssh_keys %}
+        <tr>
+            <td>{{ key["key_name"] }}</td>
+            <td>
+                {% for user in key["assigned_users"] %}
+                    <span style="margin-right: 5px;">
+                        {{ user["username"] }}
+                        <form method="post" action="/admin/ssh-keys/unassign/{{ key['id'] }}/{{ user['id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
+                            <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
+                        </form>
+                    </span>
+                {% else %}
+                    No users
+                {% endfor %}
+            </td>
+            <td>{{ key["expiration_date"] or "-" }}</td>
+            <td>{{ "🔒 Locked" if key["locked"] else "🔓 Active" }}</td>
+            <td>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <a href="/admin/ssh-keys/edit/{{ key['id'] }}" style="text-decoration: none;">✏️ Edit</a>
+
+                    {% if key["locked"] %}
+                        <form method="post" action="/admin/ssh-keys/unlock/{{ key['id'] }}" style="margin: 0;" onsubmit="return confirmUnlock();">
+                            <button type="submit" style="background: none; border: none; color: green; cursor: pointer;">🔓 Unlock</button>
+                        </form>
+                    {% else %}
+                        <form method="post" action="/admin/ssh-keys/lock/{{ key['id'] }}" style="margin: 0;" onsubmit="return confirmLock();">
+                            <button type="submit" style="background: none; border: none; color: orange; cursor: pointer;">🔒 Lock</button>
+                        </form>
+                    {% endif %}
+
+                    <form method="post" action="/admin/ssh-keys/delete/{{ key['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
+                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
+                    </form>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+// Confirm dialogs
+function confirmDelete() {
+    return confirm("Are you sure you want to delete this SSH Key?");
+}
+
+function confirmLock() {
+    return confirm("Are you sure you want to lock this SSH Key?");
+}
+
+function confirmUnlock() {
+    return confirm("Are you sure you want to unlock this SSH Key?");
+}
+
+function confirmUnassign() {
+    return confirm("Are you sure you want to unassign this user from the key?");
+}
+
+// Simple real-time search
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#sshKeysTable tbody tr');
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
+    });
+});
+</script>
+
+{% endblock %}

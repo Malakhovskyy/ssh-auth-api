@@ -26,16 +26,7 @@ def authenticate_admin(username: str, password: str, ip_address: str):
         return None
 
 def get_current_admin_user(request: Request):
-    if "admin_user" not in request.session:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    return request.session["admin_user"]
-
-def logout_admin(request: Request):
-    request.session.pop("admin_user", None)
-    return RedirectResponse(url="/admin/login")
-
-def get_current_admin_user(request: Request):
-    if "admin_user" not in request.session:
+    if "username" not in request.session:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     # Check session timeout
@@ -48,4 +39,8 @@ def get_current_admin_user(request: Request):
             request.session.clear()
             raise HTTPException(status_code=401, detail="Session expired")
 
-    return request.session["admin_user"]
+    return request.session["username"]
+
+def logout_admin(request: Request):
+    request.session.pop("admin_user", None)
+    return RedirectResponse(url="/admin/login")

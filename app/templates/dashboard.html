@@ -155,8 +155,8 @@
             });
     };
 
-    const fetchTopUsers = () => {
-        fetch('/admin/dashboard-users')
+    const fetchTopUsers = (period) => {
+        fetch(`/admin/dashboard-users?period=${period}`)
             .then(response => response.json())
             .then(data => {
                 const tbodyUsers = document.getElementById('top-users');
@@ -169,8 +169,8 @@
             });
     };
 
-    const fetchTopServers = () => {
-        fetch('/admin/dashboard-servers')
+    const fetchTopServers = (period) => {
+        fetch(`/admin/dashboard-servers?period=${period}`)
             .then(response => response.json())
             .then(data => {
                 const tbodyServers = document.getElementById('top-servers');
@@ -183,8 +183,8 @@
             });
     };
 
-    const fetchTopFailedUsers = () => {
-        fetch('/admin/dashboard-failed-users')
+    const fetchTopFailedUsers = (period) => {
+        fetch(`/admin/dashboard-failed-users?period=${period}`)
             .then(response => response.json())
             .then(data => {
                 const tbodyFailedUsers = document.getElementById('top-failed-users');
@@ -200,9 +200,9 @@
     document.getElementById('global-period').addEventListener('change', function() {
         const period = this.value;
         fetchDashboardData(period);
-        fetchTopUsers();
-        fetchTopServers();
-        fetchTopFailedUsers();
+        fetchTopUsers(period);
+        fetchTopServers(period);
+        fetchTopFailedUsers(period);
     });
 
     document.addEventListener("DOMContentLoaded", function() {

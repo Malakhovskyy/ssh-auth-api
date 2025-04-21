@@ -1,33 +1,59 @@
-<!-- templates/base.html -->
+{% raw %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}SSH Key Manager{% endblock %}</title>
-    <link href="/static/styles.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <link rel="stylesheet" href="/static/css/styles.css">
 </head>
 <body>
-    <div class="layout">
-        <aside class="sidebar">
-            <h2>🔐 SSH Manager</h2>
-            <nav>
-                <a href="/admin/dashboard">🏠 Dashboard</a>
-                <a href="/admin/admins">👤 Manage Admins</a>
-                <a href="/admin/ssh-users">👥 Manage SSH Users</a>
-                <a href="/admin/servers">🖥️ Manage Servers</a>
-                <a href="/admin/ssh-keys">🔑 Manage SSH Keys</a>
-                <a href="/admin/logs">📝 Admin Logs</a>
-                <a href="/admin/email-logs">✉️ Email Logs</a>
-                <a href="/admin/api-logs">📄 API Logs</a>     <!-- Corrected -->
-                <a href="/admin/allowed-ips">🌐 API Allowed IPs</a> <!-- Corrected -->
-                <a href="/admin/settings">⚙️ Settings</a>
-                <a href="/admin/logout">🚪 Logout</a>
-            </nav>
-        </aside>
-        <main class="content">
-            {% block content %}{% endblock %}
-        </main>
+
+<div class="d-flex" id="wrapper">
+    <!-- Sidebar -->
+    <div class="border-end bg-dark" id="sidebar-wrapper">
+        <div class="sidebar-heading text-white">SSH Manager</div>
+        <div class="list-group list-group-flush">
+            <a href="/admin/dashboard" class="list-group-item list-group-item-action list-group-item-dark">Dashboard</a>
+            <a href="/admin/admins" class="list-group-item list-group-item-action list-group-item-dark">Manage Admins</a>
+            <a href="/admin/ssh-users" class="list-group-item list-group-item-action list-group-item-dark">Manage SSH Users</a>
+            <a href="/admin/servers" class="list-group-item list-group-item-action list-group-item-dark">Manage Servers</a>
+            <a href="/admin/ssh-keys" class="list-group-item list-group-item-action list-group-item-dark">Manage SSH Keys</a>
+            <a href="/admin/logs" class="list-group-item list-group-item-action list-group-item-dark">Admin Logs</a>
+            <a href="/admin/email-logs" class="list-group-item list-group-item-action list-group-item-dark">Email Logs</a>
+            <a href="/admin/api-logs" class="list-group-item list-group-item-action list-group-item-dark">API Logs</a>
+            <a href="/admin/allowed-ips" class="list-group-item list-group-item-action list-group-item-dark">Allowed IPs</a>
+            <a href="/admin/settings" class="list-group-item list-group-item-action list-group-item-dark">Settings</a>
+            <a href="/admin/logout" class="list-group-item list-group-item-action list-group-item-dark">Logout</a>
+        </div>
     </div>
+    <!-- /#sidebar-wrapper -->
+
+    <!-- Page content wrapper -->
+    <div id="page-content-wrapper">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom">
+            <div class="container-fluid">
+                <button class="btn btn-primary" id="menu-toggle">Toggle Menu</button>
+            </div>
+        </nav>
+
+        <div class="container-fluid mt-4">
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
+    <!-- /#page-content-wrapper -->
+</div>
+
+<script src="/static/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById("menu-toggle").addEventListener("click", function(e) {
+        e.preventDefault();
+        document.getElementById("wrapper").classList.toggle("toggled");
+    });
+</script>
+
 </body>
 </html>
+{% endraw %}

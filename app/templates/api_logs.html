@@ -3,12 +3,17 @@
 {% block title %}API Access Logs - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>API Access Logs</h1>
-
-<input type="text" id="searchInput" placeholder="Search API Logs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+<div class="card my-4">
+  <div class="card-header">
+    API Access Logs
+  </div>
+  <div class="card-body">
+    <div class="mb-3">
+      <input type="text" id="searchInput" placeholder="Search API Logs..." class="form-control">
+    </div>
 
 {% if api_logs %}
-<table id="apiLogsTable">
+<table id="apiLogsTable" class="table table-striped table-hover table-bordered">
     <thead>
         <tr>
             <th>ID</th>
@@ -56,4 +61,6 @@ document.getElementById('searchInput').addEventListener('keyup', function() {
 });
 </script>
 
+  </div>
+</div>
 {% endblock %}

@@ -3,33 +3,44 @@
 {% block title %}Add Allowed IP - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Add Allowed IP / CIDR / ASN</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Add Allowed IP / CIDR / ASN</h5>
+        <form method="post" action="/admin/allowed-ips/add">
 
-<form method="post" action="/admin/allowed-ips/add">
+            <div class="form-group">
+                <label for="ip_or_cidr_or_asn">IP / CIDR / ASN:</label>
+                <input type="text" name="ip_or_cidr_or_asn" class="form-control" required>
+            </div>
 
-    <label>IP / CIDR / ASN:</label><br>
-    <input type="text" name="ip_or_cidr_or_asn" class="input-standard" required><br><br>
+            <div class="form-group">
+                <label for="type">Type:</label>
+                <select name="type" class="form-control" required>
+                    <option value="IP">IP</option>
+                    <option value="CIDR">CIDR</option>
+                    <option value="ASN">ASN</option>
+                </select>
+            </div>
 
-    <label>Type:</label><br>
-    <select name="type" class="input-standard" required>
-        <option value="IP">IP</option>
-        <option value="CIDR">CIDR</option>
-        <option value="ASN">ASN</option>
-    </select><br><br>
+            <div class="form-group">
+                <label for="context">Context:</label>
+                <select name="context" class="form-control">
+                    <option value="api" selected>api</option>
+                    <option value="admin">admin</option>
+                    <option value="both">both</option>
+                </select>
+            </div>
 
-    <label>Context:</label><br>
-    <select name="context" class="input-standard">
-        <option value="api" selected>api</option>
-        <option value="admin">admin</option>
-        <option value="both">both</option>
-    </select><br><br>
+            <div class="form-group">
+                <label for="description">Description:</label>
+                <input type="text" name="description" class="form-control">
+            </div>
 
-    <label>Description:</label><br>
-    <input type="text" name="description" class="input-standard"><br><br>
+            <button type="submit" class="btn btn-primary">Add Allowed IP</button>
 
-    <button type="submit">Add Allowed IP</button>
-
-</form>
+        </form>
+    </div>
+</div>
 
 <br><a href="/admin/allowed-ips">← Back to Allowed IPs</a>
 

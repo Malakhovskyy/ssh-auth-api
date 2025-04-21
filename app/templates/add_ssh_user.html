@@ -3,39 +3,52 @@
 {% block title %}Add SSH User - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Add SSH User</h1>
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Add SSH User</h5>
+    </div>
+    <div class="card-body">
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
 
-{% if error %}
-    <div class="error">{{ error }}</div>
-{% endif %}
+        <form method="post" action="/admin/ssh-users/add">
 
-<form method="post" action="/admin/ssh-users/add">
+            <div class="mb-3">
+                <label for="username" class="form-label">Username:</label>
+                <input type="text" id="username" name="username" class="form-control" required value="{{ prefill_username if prefill_username else '' }}">
+            </div>
 
-    <label>Username:</label><br>
-    <input type="text" name="username" class="input-standard" required value="{{ prefill_username if prefill_username else '' }}"><br><br>
+            <div class="mb-3">
+                <label for="email" class="form-label">Email:</label>
+                <input type="email" id="email" name="email" class="form-control" required value="{{ prefill_email if prefill_email else '' }}">
+            </div>
 
-    <label>Email:</label><br>
-    <input type="email" name="email" class="input-standard" required value="{{ prefill_email if prefill_email else '' }}"><br><br>
+            <div class="mb-3">
+                <label for="expiration_date" class="form-label">Expiration Date:</label>
+                <input type="text" id="expiration_date" name="expiration_date" class="form-control" required>
+            </div>
 
-    <label>Expiration Date:</label><br>
-    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" required><br><br>
+            <div class="form-check mb-3">
+                <input type="checkbox" id="never_expires" name="never_expires" class="form-check-input" checked>
+                <label class="form-check-label" for="never_expires">Never Expires</label>
+            </div>
 
-    <label>
-        <input type="checkbox" id="never_expires" name="never_expires" checked>
-        Never Expires
-    </label><br><br>
+            <div class="form-check mb-3">
+                <input type="checkbox" name="locked" class="form-check-input" {% if prefill_locked %}checked{% endif %}>
+                <label class="form-check-label">Locked</label>
+            </div>
 
-    <label>
-        <input type="checkbox" name="locked"
-        {% if prefill_locked %}checked{% endif %}>
-        Locked
-    </label><br><br>
+            <button type="submit" class="btn btn-primary">Create SSH User</button>
+        </form>
+    </div>
+</div>
 
-    <button type="submit">Create SSH User</button>
-</form>
+<br>
+<a href="/admin/ssh-users">← Back to SSH Users List</a>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="/static/js/flatpickr.js"></script>
+<link rel="stylesheet" href="/static/css/flatpickr.min.css">
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -70,7 +83,5 @@ document.addEventListener('DOMContentLoaded', function() {
     neverExpiresCheckbox.addEventListener('change', updateExpirationField);
 });
 </script>
-
-<br><a href="/admin/ssh-users">← Back to SSH Users List</a>
 
 {% endblock %}

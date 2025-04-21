@@ -3,6 +3,27 @@
 {% block title %}Dashboard - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Welcome, {{ user }}</h1>
-<p>Use the left menu to manage users, servers, SSH keys, logs, and settings.</p>
+<div class="card">
+    <div class="card-header">
+        Welcome, {{ user }}
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-6">
+                <a href="#" class="btn btn-primary">Manage Admins</a>
+                <a href="#" class="btn btn-primary">Manage SSH Users</a>
+            </div>
+            <div class="col-6">
+                <a href="#" class="btn btn-primary">Manage Servers</a>
+                <a href="#" class="btn btn-primary">Manage SSH Keys</a>
+            </div>
+            <div class="col-6">
+                <a href="#" class="btn btn-primary">View Logs</a>
+            </div>
+            <div class="col-6">
+                <a href="#" class="btn btn-primary">Settings</a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

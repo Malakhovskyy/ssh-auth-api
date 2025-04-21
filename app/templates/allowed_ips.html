@@ -1,62 +1,54 @@
 {% extends "base.html" %}
 
-{% block title %}Manage Allowed IPs - SSH Key Manager{% endblock %}
+{% block title %}Allowed IPs - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Manage Allowed IPs</h1>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Allowed IPs</h5>
+        <a href="/admin/allowed-ips/add" class="btn btn-primary">Add Allowed IP</a>
+    </div>
+    <div class="card-body">
+        <form method="get" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="search" placeholder="Search by IP, CIDR, ASN, Type, or Context" class="form-control" value="{{ search if search else '' }}">
+                <button class="btn btn-secondary" type="submit">Search</button>
+            </div>
+        </form>
 
-<a href="/admin/allowed-ips/add"><button style="margin-bottom: 20px;">➕ Add IP / CIDR / ASN</button></a>
-
-<input type="text" id="searchInput" placeholder="Search Allowed IPs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
-
-<table id="allowedIpsTable">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>IP / CIDR / ASN</th>
-            <th>Type</th>
-            <th>Context</th>
-            <th>Description</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for ip in allowed_ips %}
-        <tr>
-            <td>{{ ip["id"] }}</td>
-            <td>{{ ip["ip_or_cidr_or_asn"] }}</td>
-            <td>{{ ip["type"] }}</td>
-            <td>{{ ip["context"] }}</td>
-            <td>{{ ip["description"] or "-" }}</td>
-            <td>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <a href="/admin/allowed-ips/edit/{{ ip['id'] }}" style="text-decoration: none;">✏️ Edit</a>
-
-                    <form method="post" action="/admin/allowed-ips/delete/{{ ip['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
-                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
-                    </form>
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-<script>
-// Confirm dialog
-function confirmDelete() {
-    return confirm("Are you sure you want to delete this allowed IP?");
-}
-
-// Simple real-time search
-document.getElementById('searchInput').addEventListener('keyup', function() {
-    let filter = this.value.toLowerCase();
-    let rows = document.querySelectorAll('#allowedIpsTable tbody tr');
-    rows.forEach(row => {
-        let text = row.innerText.toLowerCase();
-        row.style.display = text.includes(filter) ? '' : 'none';
-    });
-});
-</script>
-
+        {% if allowed_ips %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>IP/CIDR/ASN</th>
+                        <th>Type</th>
+                        <th>Context</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ip in allowed_ips %}
+                    <tr>
+                        <td>{{ ip['ip_or_cidr_or_asn'] }}</td>
+                        <td>{{ ip['type'] }}</td>
+                        <td>{{ ip['context'] }}</td>
+                        <td>{{ ip['description'] }}</td>
+                        <td>
+                            <a href="/admin/allowed-ips/edit/{{ ip['id'] }}" class="btn btn-sm btn-primary">Edit</a>
+                            <form method="post" action="/admin/allowed-ips/delete/{{ ip['id'] }}" style="display:inline-block" onsubmit="return confirm('Are you sure you want to delete this allowed IP?');">
+                                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center">No allowed IPs found.</p>
+        {% endif %}
+    </div>
+</div>
 {% endblock %}

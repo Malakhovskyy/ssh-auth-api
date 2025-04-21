@@ -3,17 +3,21 @@
 {% block title %}Edit Server - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Edit Server: {{ server["server_name"] }}</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Edit Server: {{ server["server_name"] }}</h5>
 
-<form method="post" action="/admin/servers/edit/{{ server['id'] }}">
+        <form method="post" action="/admin/servers/edit/{{ server['id'] }}">
+            <div class="mb-3">
+                <label for="serverName" class="form-label">Server Name:</label>
+                <input type="text" id="serverName" name="server_name" class="form-control" required value="{{ server['server_name'] }}">
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </form>
+    </div>
+</div>
 
-    <label>Server Name:</label><br>
-    <input type="text" name="server_name" class="input-standard" required value="{{ server['server_name'] }}"><br><br>
-
-    <button type="submit">Save Changes</button>
-
-</form>
-
-<br><a href="/admin/servers">← Back to Servers List</a>
+<br>
+<a href="/admin/servers">← Back to Servers List</a>
 
 {% endblock %}

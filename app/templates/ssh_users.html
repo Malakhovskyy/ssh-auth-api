@@ -3,55 +3,61 @@
 {% block title %}SSH Users - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Manage SSH Users</h1>
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">Manage SSH Users</h2>
+        <div class="text-end">
+            <a href="/admin/ssh-users/add"><button class="btn btn-primary" style="margin-bottom: 20px;">➕ Add User</button></a>
+        </div>
+    </div>
+    <div class="card-body">
+        <input type="text" id="searchInput" placeholder="Search SSH Users..." class="form-control mb-3">
 
-<a href="/admin/ssh-users/add"><button style="margin-bottom: 20px;">➕ Add User</button></a>
+        <table id="sshUsersTable" class="table table-striped table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Expiration Date</th>
+                    <th>Locked</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>{{ user["id"] }}</td>
+                    <td>{{ user["username"] }}</td>
+                    <td>{{ user["email"] or "-" }}</td>
+                    <td>{{ user["expiration_date"] or "-" }}</td>
+                    <td>{{ "🔒 Locked" if user["locked"] else "🔓 Active" }}</td>
+                    <td>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <a href="/admin/assign-key/{{ user['id'] }}" class="btn btn-sm btn-success">🔑 Assign Key</a>
+                            <a href="/admin/ssh-users/edit/{{ user['id'] }}" class="btn btn-sm btn-primary">✏️ Edit</a>
 
-<input type="text" id="searchInput" placeholder="Search SSH Users..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
+                            {% if user["locked"] %}
+                                <form method="post" action="/admin/ssh-users/unlock/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmUnlock();">
+                                    <button type="submit" class="btn btn-sm btn-warning">🔓 Unlock</button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="/admin/ssh-users/lock/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmLock();">
+                                    <button type="submit" class="btn btn-sm btn-warning">🔒 Lock</button>
+                                </form>
+                            {% endif %}
 
-<table id="sshUsersTable">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Email</th>
-            <th>Expiration Date</th>
-            <th>Locked</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for user in users %}
-        <tr>
-            <td>{{ user["id"] }}</td>
-            <td>{{ user["username"] }}</td>
-            <td>{{ user["email"] or "-" }}</td>
-            <td>{{ user["expiration_date"] or "-" }}</td>
-            <td>{{ "🔒 Locked" if user["locked"] else "🔓 Active" }}</td>
-            <td>
-                <div style="display: flex; gap: 10px; align-items: center;">
-                    <a href="/admin/assign-key/{{ user['id'] }}" style="text-decoration: none; color: #007bff;">🔑 Assign Key</a>
-                    <a href="/admin/ssh-users/edit/{{ user['id'] }}" style="text-decoration: none;">✏️ Edit</a>
-
-                    {% if user["locked"] %}
-                        <form method="post" action="/admin/ssh-users/unlock/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmUnlock();">
-                            <button type="submit" style="background: none; border: none; color: green; cursor: pointer;">🔓 Unlock</button>
-                        </form>
-                    {% else %}
-                        <form method="post" action="/admin/ssh-users/lock/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmLock();">
-                            <button type="submit" style="background: none; border: none; color: orange; cursor: pointer;">🔒 Lock</button>
-                        </form>
-                    {% endif %}
-
-                    <form method="post" action="/admin/ssh-users/delete/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
-                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
-                    </form>
-                </div>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+                            <form method="post" action="/admin/ssh-users/delete/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
+                                <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <script>
 // Confirm dialogs
@@ -66,31 +72,16 @@ function confirmLock() {
 function confirmUnlock() {
     return confirm("Are you sure you want to unlock this SSH user?");
 }
-</script>
 
-<script>
-    // Confirm dialogs
-    function confirmDelete() {
-        return confirm("Are you sure you want to delete this SSH user?");
-    }
-    
-    function confirmLock() {
-        return confirm("Are you sure you want to lock this SSH user?");
-    }
-    
-    function confirmUnlock() {
-        return confirm("Are you sure you want to unlock this SSH user?");
-    }
-    
-    // Simple real-time search
-    document.getElementById('searchInput').addEventListener('keyup', function() {
-        let filter = this.value.toLowerCase();
-        let rows = document.querySelectorAll('#sshUsersTable tbody tr');
-        rows.forEach(row => {
-            let text = row.innerText.toLowerCase();
-            row.style.display = text.includes(filter) ? '' : 'none';
-        });
+// Simple real-time search
+document.getElementById('searchInput').addEventListener('keyup', function() {
+    let filter = this.value.toLowerCase();
+    let rows = document.querySelectorAll('#sshUsersTable tbody tr');
+    rows.forEach(row => {
+        let text = row.innerText.toLowerCase();
+        row.style.display = text.includes(filter) ? '' : 'none';
     });
-    </script>
+});
+</script>
 
 {% endblock %}

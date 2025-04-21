@@ -3,37 +3,49 @@
 {% block title %}Edit SSH Key - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Edit SSH Key: {{ key_data["key_name"] }}</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Edit SSH Key: {{ key_data["key_name"] }}</h5>
+        <form method="post" action="/admin/ssh-keys/edit/{{ key_data['id'] }}">
 
-<form method="post" action="/admin/ssh-keys/edit/{{ key_data['id'] }}">
+            <div class="mb-3">
+                <label class="form-label">SSH Key Name:</label>
+                <input type="text" name="key_name" class="form-control" value="{{ key_data['key_name'] }}" required>
+            </div>
 
-    <label>SSH Key Name:</label><br>
-    <input type="text" name="key_name" class="input-standard" value="{{ key_data['key_name'] }}" required><br><br>
+            <div class="mb-3">
+                <label class="form-label">Expiration Date:</label>
+                <input type="text" id="expiration_date" name="expiration_date" class="form-control" value="{{ key_data['expiration_date'] }}" required>
+            </div>
 
-    <label>Expiration Date:</label><br>
-    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" value="{{ key_data['expiration_date'] }}" required><br><br>
+            <div class="mb-3 form-check">
+                <input type="checkbox" id="never_expires" name="never_expires" class="form-check-input"
+                {% if key_data['expiration_date'] == '2099-12-31 23:59:59' %}checked{% endif %}>
+                <label class="form-check-label" for="never_expires">Never Expires</label>
+            </div>
 
-    <label>
-        <input type="checkbox" id="never_expires" name="never_expires"
-        {% if key_data['expiration_date'] == '2099-12-31 23:59:59' %}checked{% endif %}>
-        Never Expires
-    </label><br><br>
+            <div class="mb-3 form-check">
+                <input type="checkbox" name="locked" class="form-check-input"
+                {% if key_data['locked'] == 1 %}checked{% endif %}>
+                <label class="form-check-label">Locked</label>
+            </div>
 
-    <label>
-        <input type="checkbox" name="locked"
-        {% if key_data['locked'] == 1 %}checked{% endif %}>
-        Locked
-    </label><br><br>
+            <div class="mb-3">
+                <label class="form-label">SSH Key Data:</label>
+                <textarea name="ssh_key_data" class="form-control" rows="8" required>{{ decrypted_key_data }}</textarea>
+            </div>
 
-    <label>SSH Key Data:</label><br>
-    <textarea name="ssh_key_data" class="input-standard-textarea" rows="8" required>{{ decrypted_key_data }}</textarea><br><br>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
 
-    <button type="submit">Save Changes</button>
+        </form>
+    </div>
+</div>
 
-</form>
+<br>
+<a href="/admin/ssh-keys">← Back to SSH Keys List</a>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<script src="/static/js/flatpickr.js"></script>
+<link rel="stylesheet" href="/static/css/flatpickr.min.css">
 
 <script>
 // Flatpickr calendar + clock
@@ -61,7 +73,5 @@ window.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
-<br><a href="/admin/ssh-keys">← Back to SSH Keys List</a>
 
 {% endblock %}

@@ -3,39 +3,53 @@
 {% block title %}Add SSH Key - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Add SSH Key</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Add SSH Key</h5>
 
-{% if error %}
-<div class="error" style="color: red;">{{ error }}</div>
-{% endif %}
+        {% if error %}
+        <div class="error" style="color: red;">{{ error }}</div>
+        {% endif %}
 
-<form method="post" action="/admin/ssh-keys/add">
+        <form method="post" action="/admin/ssh-keys/add">
 
-    <label>SSH Key Name:</label><br>
-    <input type="text" name="key_name" class="input-standard" required><br><br>
+            <div class="mb-3">
+                <label for="key_name" class="form-label">SSH Key Name:</label>
+                <input type="text" id="key_name" name="key_name" class="form-control" required>
+            </div>
 
-    <label>SSH Key Data:</label><br>
-    <textarea name="ssh_key_data" class="input-standard-textarea" rows="8" required></textarea><br><br>    
+            <div class="mb-3">
+                <label for="ssh_key_data" class="form-label">SSH Key Data:</label>
+                <textarea id="ssh_key_data" name="ssh_key_data" class="form-control" rows="8" required></textarea>
+            </div>    
 
-    <label>Expiration Date:</label><br>
-    <input type="text" id="expiration_date" name="expiration_date" class="input-standard" required><br><br>
+            <div class="mb-3">
+                <label for="expiration_date" class="form-label">Expiration Date:</label>
+                <input type="text" id="expiration_date" name="expiration_date" class="form-control" required>
+            </div>
 
-    <label>
-        <input type="checkbox" id="never_expires" name="never_expires">
-        Never Expires
-    </label><br><br>
+            <div class="form-check mb-3">
+                <input type="checkbox" id="never_expires" name="never_expires" class="form-check-input">
+                <label class="form-check-label" for="never_expires">Never Expires</label>
+            </div>
 
-    <label>
-        <input type="checkbox" name="locked">
-        Locked
-    </label><br><br>
+            <div class="form-check mb-3">
+                <input type="checkbox" name="locked" class="form-check-input">
+                <label class="form-check-label">Locked</label>
+            </div>
 
-    <button type="submit">Create SSH Key</button>
+            <button type="submit" class="btn btn-primary">Create SSH Key</button>
 
-</form>
+        </form>
 
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+        <br>
+        <a href="/admin/ssh-keys">← Back to SSH Keys List</a>
+
+    </div>
+</div>
+
+<script src="/static/js/flatpickr.js"></script>
+<link rel="stylesheet" href="/static/css/flatpickr.min.css">
 
 <script>
 // Set default expiration date to 1 year from now
@@ -62,7 +76,5 @@ document.getElementById('never_expires').addEventListener('change', function() {
     }
 });
 </script>
-
-<br><a href="/admin/ssh-keys">← Back to SSH Keys List</a>
 
 {% endblock %}

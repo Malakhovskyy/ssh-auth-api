@@ -3,20 +3,24 @@
 {% block title %}Add Server - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Add Server</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Add Server</h5>
 
-{% if error %}
-    <div class="error">{{ error }}</div>
-{% endif %}
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
 
-<form method="post" action="/admin/servers/add">
+        <form method="post" action="/admin/servers/add">
+            <div class="mb-3">
+                <label for="server_name" class="form-label">Server Name:</label>
+                <input type="text" name="server_name" class="form-control" required>
+            </div>
 
-    <label>Server Name:</label><br>
-    <input type="text" name="server_name" class="input-standard" required><br><br>
-
-    <button type="submit">Create Server</button>
-
-</form>
+            <button type="submit" class="btn btn-primary">Create Server</button>
+        </form>
+    </div>
+</div>
 
 <br><a href="/admin/servers">← Back to Servers List</a>
 

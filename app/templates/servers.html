@@ -3,13 +3,14 @@
 {% block title %}Manage Servers - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Manage Servers</h1>
-
-<a href="/admin/servers/add"><button style="margin-bottom: 20px;">➕ Add Server</button></a>
-
-<input type="text" id="searchInput" placeholder="Search Servers..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
-
-<table id="serversTable">
+<div class="card">
+  <div class="card-header">
+    <h5 class="card-title">Manage Servers</h5>
+    <a href="/admin/servers/add" class="btn btn-primary float-end mb-0">➕ Add Server</a>
+  </div>
+  <div class="card-body">
+    <input type="text" id="searchInput" class="form-control mb-3" placeholder="Search Servers...">
+    <table id="serversTable" class="table table-striped table-hover table-bordered">
     <thead>
         <tr>
             <th>ID</th>
@@ -28,8 +29,8 @@
                     {% for user in server["assigned_users"] %}
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <span>{{ user["username"] }} ({{ user["key_name"] }})</span>
-                            <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
-                                <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">❌</button>
+                    <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
+                                <button type="submit" class="btn btn-sm btn-danger">❌</button>
                             </form>
                         </div>
                     {% endfor %}
@@ -39,11 +40,11 @@
             </td>
             <td>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <a href="/admin/servers/assign-user/{{ server['id'] }}" style="text-decoration: none; color: #28a745;">➕ Assign User</a>
-                    <a href="/admin/servers/edit/{{ server['id'] }}" style="text-decoration: none;">✏️ Edit</a>
+                    <a href="/admin/servers/assign-user/{{ server['id'] }}" class="btn btn-sm btn-success">➕ Assign User</a>
+                    <a href="/admin/servers/edit/{{ server['id'] }}" class="btn btn-sm btn-primary">✏️ Edit</a>
 
                     <form method="post" action="/admin/servers/delete/{{ server['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
-                        <button type="submit" style="background: none; border: none; color: red; cursor: pointer;">🗑️ Delete</button>
+                        <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
                     </form>
                 </div>
             </td>
@@ -72,4 +73,6 @@ document.getElementById('searchInput').addEventListener('keyup', function() {
 });
 </script>
 
+      </div>
+    </div>
 {% endblock %}

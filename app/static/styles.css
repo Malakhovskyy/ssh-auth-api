@@ -1,8 +1,8 @@
-/* General */
+/ * General */
 body {
-    margin: 0;
+    background-color: #f8f9fa;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f6f9;
+    margin: 0;
 }
 
 .layout {
@@ -10,190 +10,83 @@ body {
     min-height: 100vh;
 }
 
-/* Sidebar */
+/ * Sidebar */
 .sidebar {
     width: 230px;
-    background: #2c3e50;
+    background: #343a40;
     color: white;
     padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: center;
     position: sticky;
     top: 0;
     height: 100vh;
 }
 
 .sidebar h2 {
-    margin-bottom: 20px;
-    font-size: 24px;
-    text-align: center;
-}
-
-.sidebar nav {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    /* REMOVE flex-grow: 1 */
-    /* REMOVE justify-content: center */
-    /* This makes nav start from the top normally */
+    font-size: 22px;
+    margin-bottom: 30px;
 }
 
 .sidebar nav a {
     color: white;
     text-decoration: none;
-    margin: 10px 0;
-    font-size: 16px;
-    width: 100%;
-    text-align: center;
     padding: 10px 0;
+    display: block;
+    font-size: 16px;
 }
 
 .sidebar nav a:hover {
-    background-color: #34495e;
-    border-radius: 6px;
+    background-color: #495057;
+    border-radius: 4px;
 }
 
-/* Main content */
+/ * Content */
 .content {
     flex: 1;
     padding: 30px;
 }
 
-/* Auth Pages */
-.auth-container {
-    max-width: 400px;
-    margin: 100px auto;
-    padding: 30px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-/* Headings */
-h1, h2 {
-    margin-top: 0;
-}
-
-/* Forms */
-form {
-    margin-top: 20px;
-}
-
-/* Forms - general inputs default full width */
-input[type="text"],
-input[type="password"],
-input[type="email"] {
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    box-sizing: border-box;
-}
-
-/* Forms - special inputs with fixed width */
-.input-standard {
-    width: 400px !important; /* force it */
-    max-width: 100%;
-}
-
-/* Buttons */
-button {
-    padding: 12px 20px;
-    background-color: #007bff;
-    border: none;
-    color: white;
-    font-weight: bold;
-    border-radius: 6px;
-    width: 100%;
-    cursor: pointer;
-    transition: background 0.3s ease;
-}
-
-button:hover {
-    background-color: #0056b3;
-}
-
-/* Tables */
-table {
-    width: 100%; /* Full width */
-    border-collapse: collapse;
-    margin-top: 20px;
-    background: white;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-    border: 2px solid #444; /* Strong solid outer border */
-}
-
-table th, table td {
-    padding: 14px;
-    border: 1px solid #444; /* Strong solid inside borders */
-    text-align: left;
-}
-
-table th {
-    background: #f8f9fa;
-    font-weight: bold;
-}
-
-table tr:nth-child(even) {
-    background-color: #f2f2f2;
-}
-
-table tr:hover {
-    background-color: #e6f2ff;
-}
-
-/* Search input (for logs search) */
-#searchInput {
-    padding: 10px;
-    margin-bottom: 20px;
-    width: 100%;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
-.settings-block {
-    background: #ffffff;
-    padding: 20px;
-    margin-bottom: 30px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-}
-
-.alert-success {
-    background-color: #d4edda;
-    color: #155724;
-    padding: 15px;
-    border: 1px solid #c3e6cb;
-    border-radius: 6px;
+/ * Cards */
+.card {
     margin-bottom: 20px;
 }
 
-/* Force number fields to match */
-input[type="number"].input-standard {
-    width: 25px !important;
-}
-
-.input-standard-textarea {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    box-sizing: border-box;
-    font-family: monospace; /* nice for keys */
-    font-size: 14px;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-td, th {
-    padding: 12px;
-    border: 1px solid #ddd;
-    text-align: left;
+/ * Tables */
+.table td, .table th {
     vertical-align: middle;
+}
+
+/ * Forms */
+input.form-control, select.form-select, textarea.form-control {
+    margin-bottom: 15px;
+}
+
+/ * Buttons */
+.btn {
+    margin-right: 5px;
+}
+
+/ * Alerts */
+.alert {
+    margin-top: 10px;
+}
+
+/ * Auth Pages */
+.auth-wrapper {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/ * Sidebar toggle animation */
+#sidebar-wrapper {
+    min-height: 100vh;
+    margin-left: -15rem;
+    transition: margin 0.25s ease-out;
+}
+
+#wrapper.toggled #sidebar-wrapper {
+    margin-left: 0;
 }

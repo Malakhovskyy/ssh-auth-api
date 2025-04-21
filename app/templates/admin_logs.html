@@ -3,34 +3,39 @@
 {% block title %}Admin Logs - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Admin Logs</h1>
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title">Admin Logs</h5>
+    </div>
+    <div class="card-body">
+        <input type="text" id="searchInput" placeholder="Search logs..." class="form-control" style="margin-bottom: 20px;">
 
-<input type="text" id="searchInput" placeholder="Search logs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
-
-<table id="logsTable">
-    <thead>
-        <tr>
-            <th>ID</th>
-            <th>Username</th>
-            <th>Action</th>
-            <th>Object Modified</th>
-            <th>IP Address</th>
-            <th>Timestamp</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for log in logs %}
-        <tr>
-            <td>{{ log["id"] }}</td>
-            <td>{{ log["admin_username"] }}</td>
-            <td>{{ log["action"] }}</td>
-            <td>{{ log["object_modified"] if log["object_modified"] else "-" }}</td>
-            <td>{{ log["ip_address"] if log["ip_address"] else "-" }}</td>
-            <td>{{ log["timestamp"] }}</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+        <table id="logsTable" class="table table-striped table-hover table-bordered">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Action</th>
+                    <th>Object Modified</th>
+                    <th>IP Address</th>
+                    <th>Timestamp</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs %}
+                <tr>
+                    <td>{{ log["id"] }}</td>
+                    <td>{{ log["admin_username"] }}</td>
+                    <td>{{ log["action"] }}</td>
+                    <td>{{ log["object_modified"] if log["object_modified"] else "-" }}</td>
+                    <td>{{ log["ip_address"] if log["ip_address"] else "-" }}</td>
+                    <td>{{ log["timestamp"] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
 
 <script>
 document.getElementById('searchInput').addEventListener('keyup', function() {

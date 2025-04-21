@@ -3,27 +3,39 @@
 {% block title %}Edit Admin - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Edit Admin: {{ admin["admin_username"] }}</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Edit Admin: {{ admin["admin_username"] }}</h5>
 
-<form method="post">
-    <input type="email" name="email" value="{{ admin['email'] }}" placeholder="Email" required><br>
+        <form method="post">
+            <div class="mb-3">
+                <input type="email" class="form-control" name="email" value="{{ admin['email'] }}" placeholder="Email" required>
+            </div>
 
-    <input type="password" name="password" placeholder="New Password (leave empty to keep current)"><br>
-    <input type="password" name="confirm_password" placeholder="Confirm New Password"><br>
+            <div class="mb-3">
+                <input type="password" class="form-control" name="password" placeholder="New Password (leave empty to keep current)">
+            </div>
+            <div class="mb-3">
+                <input type="password" class="form-control" name="confirm_password" placeholder="Confirm New Password">
+            </div>
 
-    <label>Enabled:</label>
-    <select name="enabled">
-        <option value="1" {% if admin['enabled'] %}selected{% endif %}>Yes</option>
-        <option value="0" {% if not admin['enabled'] %}selected{% endif %}>No</option>
-    </select><br><br>
+            <div class="mb-3">
+                <label>Enabled:</label>
+                <select class="form-control" name="enabled">
+                    <option value="1" {% if admin['enabled'] %}selected{% endif %}>Yes</option>
+                    <option value="0" {% if not admin['enabled'] %}selected{% endif %}>No</option>
+                </select>
+            </div>
 
-    <label>
-        <input type="checkbox" name="force_password_change" value="1">
-        Force password change on next login
-    </label><br><br>
+            <div class="mb-3 form-check">
+                <input type="checkbox" class="form-check-input" name="force_password_change" value="1">
+                <label class="form-check-label">Force password change on next login</label>
+            </div>
 
-    <button type="submit">Update Admin</button>
-</form>
+            <button type="submit" class="btn btn-primary">Update Admin</button>
+        </form>
+    </div>
+</div>
 
-<a href="/admin/admins" style="display: block; margin-top: 20px;">← Back to Admin List</a>
+<a href="/admin/admins" class="mt-3 d-block">← Back to Admin List</a>
 {% endblock %}

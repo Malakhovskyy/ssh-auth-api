@@ -3,34 +3,39 @@
 {% block title %}Email Logs - SSH Key Manager{% endblock %}
 
 {% block content %}
-<h1>Email Logs</h1>
+<div class="card">
+  <div class="card-header">
+    <h1 class="card-title">Email Logs</h1>
+  </div>
+  <div class="card-body">
+    <input type="text" id="searchInput" placeholder="Search email logs..." class="form-control mb-3">
 
-<input type="text" id="searchInput" placeholder="Search email logs..." style="margin-bottom: 20px; padding: 10px; width: 100%;">
-
-<table id="emailLogsTable">
-    <thead>
+    <table id="emailLogsTable" class="table table-striped table-hover table-bordered">
+      <thead>
         <tr>
-            <th>ID</th>
-            <th>To</th>
-            <th>Subject</th>
-            <th>Status</th>
-            <th>Error</th>
-            <th>Timestamp</th>
+          <th>ID</th>
+          <th>To</th>
+          <th>Subject</th>
+          <th>Status</th>
+          <th>Error</th>
+          <th>Timestamp</th>
         </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
         {% for log in logs %}
         <tr>
-            <td>{{ log["id"] }}</td>
-            <td>{{ log["to_email"] }}</td>
-            <td>{{ log["subject"] }}</td>
-            <td>{{ log["status"] }}</td>
-            <td>{{ log["error_message"] or "-" }}</td>
-            <td>{{ log["timestamp"] }}</td>
+          <td>{{ log["id"] }}</td>
+          <td>{{ log["to_email"] }}</td>
+          <td>{{ log["subject"] }}</td>
+          <td>{{ log["status"] }}</td>
+          <td>{{ log["error_message"] or "-" }}</td>
+          <td>{{ log["timestamp"] }}</td>
         </tr>
         {% endfor %}
-    </tbody>
-</table>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 <script>
 document.getElementById('searchInput').addEventListener('keyup', function() {

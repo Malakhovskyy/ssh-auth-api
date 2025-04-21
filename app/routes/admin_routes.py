@@ -140,15 +140,51 @@ async def dashboard_data(
         "top_failed_users": top_failed_users_clean,
     }
 
+@admin_router.get("/admin/dashboard-users")
+async def dashboard_users(period: str = "1h"):
+    conn = get_db_connection()
+    since = (datetime.utcnow() - timedelta(hours=int(period.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
+    users = conn.execute("""
+        SELECT username, COUNT(*) as cnt FROM api_logs
+        WHERE success = 1 AND timestamp >= ?
+        GROUP BY username ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+    conn.close()
+    return [{"name": row["username"], "success_count": row["cnt"]} for row in users]
+
+@admin_router.get("/admin/dashboard-servers")
+async def dashboard_servers(period: str = "1h"):
+    conn = get_db_connection()
+    since = (datetime.utcnow() - timedelta(hours=int(period.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
+    servers = conn.execute("""
+        SELECT server_name, COUNT(*) as cnt FROM api_logs
+        WHERE success = 1 AND timestamp >= ?
+        GROUP BY server_name ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+    conn.close()
+    return [{"name": row["server_name"], "request_count": row["cnt"]} for row in servers]
+
+@admin_router.get("/admin/dashboard-failed-users")
+async def dashboard_failed_users(period: str = "1h"):
+    conn = get_db_connection()
+    since = (datetime.utcnow() - timedelta(hours=int(period.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
+    users = conn.execute("""
+        SELECT username, COUNT(*) as cnt FROM api_logs
+        WHERE success = 0 AND timestamp >= ?
+        GROUP BY username ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+    conn.close()
+    return [{"name": row["username"], "failure_count": row["cnt"]} for row in users]
+
 @admin_router.get("/admin/change-password", response_class=HTMLResponse)
 async def change_password_page(request: Request):
     return templates.TemplateResponse("change_password.html", {"request": request})
 
-# --- DEUBG ONLY --- #
-@admin_router.get("/admin/debug-test", response_class=HTMLResponse)
-async def debug_test(request: Request):
-    return templates.TemplateResponse("debug_test.html", {"request": request})
-# --- DEUBG ONLY --- #    
+# # --- DEUBG ONLY --- #
+# @admin_router.get("/admin/debug-test", response_class=HTMLResponse)
+# async def debug_test(request: Request):
+#     return templates.TemplateResponse("debug_test.html", {"request": request})
+# # --- DEUBG ONLY --- #    
 
 @admin_router.post("/admin/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):

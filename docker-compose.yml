@@ -11,6 +11,7 @@ services:
       - ./backups:/app/backups
     environment:
       - DOMAIN=${DOMAIN}
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --proxy-headers
     restart: unless-stopped
 
   nginx:

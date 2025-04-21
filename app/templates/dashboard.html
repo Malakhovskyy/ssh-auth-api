@@ -37,7 +37,7 @@
     <div class="card">
       <div class="card-header">Logged-in Admin Users</div>
       <div class="card-body">
-        <ul id="admin-users-list"></ul>
+        <p>Feature coming soon.</p>
       </div>
     </div>
   </div>
@@ -108,14 +108,6 @@ const fetchDashboardTotals = (period) => {
       document.getElementById('total-requests').textContent = data.total_requests;
       document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests ?? data.success_count ?? 0}`;
       document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests ?? data.fail_count ?? 0}`;
-
-      const ul = document.getElementById('admin-users-list');
-      ul.innerHTML = '';
-      data.logged_in_admins.forEach(admin => {
-        const li = document.createElement('li');
-        li.textContent = admin;
-        ul.appendChild(li);
-      });
     });
 };
 

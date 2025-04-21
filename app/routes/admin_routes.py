@@ -100,18 +100,13 @@ async def dashboard_totals(period: str = "1h"):
         total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since_api,)).fetchone()[0]
         successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since_api,)).fetchone()[0]
         failed_requests = total_requests - successful_requests
-
-        logged_in_admins = [row['admin_username'] for row in conn.execute(
-            "SELECT admin_username FROM admins WHERE is_logged_in = 1"
-        ).fetchall()]
     finally:
         conn.close()
 
     return {
         "total_requests": total_requests,
         "successful_requests": successful_requests,
-        "failed_requests": failed_requests,
-        "logged_in_admins": logged_in_admins
+        "failed_requests": failed_requests
     }
 
 

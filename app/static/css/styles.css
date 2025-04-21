@@ -83,10 +83,15 @@ input.form-control, select.form-select, textarea.form-control {
 / * Sidebar toggle animation */
 #sidebar-wrapper {
     min-height: 100vh;
-    margin-left: -15rem;
-    transition: margin 0.25s ease-out;
+    min-width: 15rem;
+    max-width: 15rem;
+    transition: margin-left 0.25s ease-out;
 }
 
 #wrapper.toggled #sidebar-wrapper {
-    margin-left: 0;
+    margin-left: -15rem;
+}
+
+#wrapper {
+    transition: margin-left 0.25s ease-out;
 }

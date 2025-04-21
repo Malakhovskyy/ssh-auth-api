@@ -114,6 +114,7 @@
     document.getElementById('global-period').addEventListener('change', function() {
         const period = this.value;
         fetchDashboardData(`/admin/dashboard-data?period_api=${period}`, data => {
+            document.getElementById('db-size').textContent = data.db_size + ' MB';
             document.getElementById('total-requests').textContent = data.total_requests;
             document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests}`;
             document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests}`;
@@ -149,13 +150,6 @@
     });
     
     document.addEventListener("DOMContentLoaded", function() {
-        // Fetch DB size once on page load
-        fetch('/admin/dashboard-dbsize')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('db-size').textContent = data.db_size + ' MB';
-            });
-
         // Simulate initial data load
         document.getElementById('global-period').dispatchEvent(new Event('change'));
     });

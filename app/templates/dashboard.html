@@ -174,8 +174,11 @@
     });
     
     document.addEventListener("DOMContentLoaded", function() {
-        // Simulate initial data load
-        document.getElementById('period-api').dispatchEvent(new Event('change'));
+    // Simulate initial data load
+    document.getElementById('period-api').dispatchEvent(new Event('change'));
+    document.getElementById('period-users').dispatchEvent(new Event('change'));
+    document.getElementById('period-servers').dispatchEvent(new Event('change'));
+    document.getElementById('period-failed').dispatchEvent(new Event('change'));
     });
 </script>
 {% endblock %}

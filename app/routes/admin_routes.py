@@ -554,7 +554,7 @@ async def edit_ssh_user(
         return templates.TemplateResponse("edit_ssh_user.html", {
             "request": request,
             "error": "Username already exists.",
-            "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}
+            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
         })
 
     # Check duplicate email (excluding self)
@@ -564,7 +564,7 @@ async def edit_ssh_user(
         return templates.TemplateResponse("edit_ssh_user.html", {
             "request": request,
             "error": "Email already exists.",
-            "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}
+            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
         })
 
     if never_expires:
@@ -572,15 +572,18 @@ async def edit_ssh_user(
 
     is_locked = 1 if locked else 0
 
-    # Handle password update
     if password:
-        encrypted = encrypt_password(password)
+        # Correct: generate salt and encrypt password
+        from services.security_service import generate_salt
+        salt = generate_salt(8)
+        encrypted_password = encrypt_password(password, salt)
         conn.execute('''
             UPDATE users
             SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?, password_md5salted = ?, salt = ?
             WHERE id = ?
-        ''', (username, email, expiration_date, is_locked, context, encrypted["password"], encrypted["salt"], user_id))
+        ''', (username, email, expiration_date, is_locked, context, encrypted_password, salt, user_id))
     else:
+        # No password change
         conn.execute('''
             UPDATE users
             SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?

@@ -16,8 +16,6 @@ init_db()  # Ensure DB initialized
 import os
 from datetime import datetime, timedelta
 
-templates = Jinja2Templates(directory="templates")
-app.mount("/static", StaticFiles(directory="static"), name="static")
 admin_router = APIRouter()
 
 @admin_router.get("/admin/login", response_class=HTMLResponse)

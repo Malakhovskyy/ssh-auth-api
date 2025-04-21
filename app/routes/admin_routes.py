@@ -69,7 +69,6 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
         "user": user,
         "data": {
             "db_size": 0,
-            "logged_in_admins": [],
             "total_requests": 0,
             "successful_requests": 0,
             "failed_requests": 0,

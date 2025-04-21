@@ -101,6 +101,11 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
         GROUP BY username ORDER BY cnt DESC LIMIT 5
     """, (since,)).fetchall()
 
+    # Transform query results into clean lists of dictionaries
+    top_users_clean = [{"name": row["username"], "success_count": row["cnt"]} for row in top_users]
+    top_servers_clean = [{"name": row["server_name"], "request_count": row["cnt"]} for row in top_servers]
+    top_failed_users_clean = [{"name": row["username"], "failure_count": row["cnt"]} for row in top_failed_users]
+
     conn.close()
 
     dashboard_data = {
@@ -108,10 +113,11 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
         "total_requests": total_requests,
         "successful_requests": successful_requests,
         "failed_requests": failed_requests,
-        "top_users": top_users,
-        "top_servers": top_servers,
-        "top_failed_users": top_failed_users,
+        "top_users": top_users_clean,
+        "top_servers": top_servers_clean,
+        "top_failed_users": top_failed_users_clean,
         "period": period,
+        "logged_in_admins": 0,
     }
 
     return templates.TemplateResponse("dashboard.html", {
@@ -119,6 +125,23 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
         "user": user,
         "data": dashboard_data
     })
+
+@admin_router.get("/admin/dashboard-data")
+async def dashboard_data(period: str = "1h"):
+    # (copy same logic from /admin/dashboard backend function)
+    # but instead of returning TemplateResponse, return JSON
+
+    return {
+        "db_size": db_size,
+        "logged_in_admins": 0,
+        "total_requests": total_requests,
+        "successful_requests": successful_requests,
+        "failed_requests": failed_requests,
+        "top_users": [{"name": ..., "success_count": ...}],
+        "top_servers": [{"name": ..., "request_count": ...}],
+        "top_failed_users": [{"name": ..., "failure_count": ...}],
+    }
+
 
 @admin_router.get("/admin/change-password", response_class=HTMLResponse)
 async def change_password_page(request: Request):

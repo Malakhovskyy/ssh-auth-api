@@ -3,27 +3,114 @@
 {% block title %}Dashboard - SSH Key Manager{% endblock %}
 
 {% block content %}
-<div class="card">
-    <div class="card-header">
-        Welcome, {{ user }}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                DB Size
+            </div>
+            <div class="card-body">
+                <h5 class="card-title" id="db-size">{{ data.db_size }} MB</h5>
+            </div>
+        </div>
     </div>
-    <div class="card-body">
-        <div class="row">
-            <div class="col-6">
-                <a href="#" class="btn btn-primary">Manage Admins</a>
-                <a href="#" class="btn btn-primary">Manage SSH Users</a>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                Logged-in Admin Users
             </div>
-            <div class="col-6">
-                <a href="#" class="btn btn-primary">Manage Servers</a>
-                <a href="#" class="btn btn-primary">Manage SSH Keys</a>
-            </div>
-            <div class="col-6">
-                <a href="#" class="btn btn-primary">View Logs</a>
-            </div>
-            <div class="col-6">
-                <a href="#" class="btn btn-primary">Settings</a>
+            <div class="card-body">
+                <h5 class="card-title">{{ data.logged_in_admins }}</h5>
             </div>
         </div>
     </div>
 </div>
+<div class="row mt-3">
+    <div class="col">
+        <div class="card">
+            <div class="card-header">
+                Total API Requests
+                    <select class="form-select" id="period-select">
+                    <option value="?period=1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
+                    <option value="?period=6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
+                    <option value="?period=12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
+                    <option value="?period=24h" {% if data.period == '24h' %}selected{% endif %}>Last 24 Hours</option>
+                </select>
+            </div>
+            <div class="card-body">
+                <h5 class="card-title" id="total-requests">{{ data.total_requests }}</h5>
+                <p id="successful-requests">Successful Requests: {{ data.successful_requests }}</p>
+                <p id="failed-requests">Failed Requests: {{ data.failed_requests }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-3">
+    <div class="col-md-4">
+        <h5>Top 5 Successful API Users</h5>
+        <table class="table">
+            <tbody id="top-users">
+                {% for user in data.top_users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.success_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <h5>Top 5 API Servers</h5>
+        <table class="table">
+            <tbody id="top-servers">
+                {% for server in data.top_servers %}
+                <tr>
+                    <td>{{ server.name }}</td>
+                    <td>{{ server.request_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="col-md-4">
+        <h5>Top 5 Failed API Users</h5>
+        <table class="table">
+            <tbody id="top-failed-users">
+                {% for user in data.top_failed_users %}
+                <tr>
+                    <td>{{ user.name }}</td>
+                    <td>{{ user.failure_count }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+    <script>
+    document.getElementById('period-select').addEventListener('change', function() {
+      const period = this.value;
+      fetch(`/admin/dashboard-data?period=${period}`)
+        .then(response => response.json())
+        .then(data => {
+          document.getElementById('db-size').textContent = data.db_size + ' MB';
+          document.getElementById('total-requests').textContent = data.total_requests;
+          document.getElementById('successful-requests').textContent = data.successful_requests;
+          document.getElementById('failed-requests').textContent = data.failed_requests;
+
+          const rebuildTable = (tableId, items, rowBuilder) => {
+            const tbody = document.getElementById(tableId);
+            tbody.innerHTML = '';
+            items.forEach(item => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = rowBuilder(item);
+              tbody.appendChild(tr);
+            });
+          };
+
+          rebuildTable('top-users', data.top_users, item => `<td>${item.name}</td><td>${item.success_count}</td>`);
+          rebuildTable('top-servers', data.top_servers, item => `<td>${item.name}</td><td>${item.request_count}</td>`);
+          rebuildTable('top-failed-users', data.top_failed_users, item => `<td>${item.name}</td><td>${item.failure_count}</td>`);
+        });
+    });
+    </script>
 {% endblock %}

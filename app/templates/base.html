@@ -6,6 +6,7 @@
     <title>{% block title %}SSH Key Manager{% endblock %}</title>
     <link rel="stylesheet" href="/static/css/bootstrap.min.css">
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
 <body>
 
@@ -14,17 +15,39 @@
     <div class="border-end bg-dark" id="sidebar-wrapper">
         <div class="sidebar-heading text-white">SSH Manager</div>
         <div class="list-group list-group-flush">
-            <a href="/admin/dashboard" class="list-group-item list-group-item-action list-group-item-dark">Dashboard</a>
-            <a href="/admin/admins" class="list-group-item list-group-item-action list-group-item-dark">Manage Admins</a>
-            <a href="/admin/ssh-users" class="list-group-item list-group-item-action list-group-item-dark">Manage SSH Users</a>
-            <a href="/admin/servers" class="list-group-item list-group-item-action list-group-item-dark">Manage Servers</a>
-            <a href="/admin/ssh-keys" class="list-group-item list-group-item-action list-group-item-dark">Manage SSH Keys</a>
-            <a href="/admin/logs" class="list-group-item list-group-item-action list-group-item-dark">Admin Logs</a>
-            <a href="/admin/email-logs" class="list-group-item list-group-item-action list-group-item-dark">Email Logs</a>
-            <a href="/admin/api-logs" class="list-group-item list-group-item-action list-group-item-dark">API Logs</a>
-            <a href="/admin/allowed-ips" class="list-group-item list-group-item-action list-group-item-dark">Allowed IPs</a>
-            <a href="/admin/settings" class="list-group-item list-group-item-action list-group-item-dark">Settings</a>
-            <a href="/admin/logout" class="list-group-item list-group-item-action list-group-item-dark">Logout</a>
+            <a href="/admin/dashboard" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-speedometer2"></i> Dashboard
+            </a>
+            <a href="/admin/admins" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-person-gear"></i> Manage Admins
+            </a>
+            <a href="/admin/ssh-users" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-people"></i> Manage SSH Users
+            </a>
+            <a href="/admin/servers" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-hdd-network"></i> Manage Servers
+            </a>
+            <a href="/admin/ssh-keys" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-key"></i> Manage SSH Keys
+            </a>
+            <a href="/admin/logs" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-journal-text"></i> Admin Logs
+            </a>
+            <a href="/admin/email-logs" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-envelope"></i> Email Logs
+            </a>
+            <a href="/admin/api-logs" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-cloud-download"></i> API Logs
+            </a>
+            <a href="/admin/allowed-ips" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-shield-lock"></i> Allowed IPs
+            </a>
+            <a href="/admin/settings" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-gear"></i> Settings
+            </a>
+            <a href="/admin/logout" class="list-group-item list-group-item-action list-group-item-dark">
+                <i class="bi bi-box-arrow-right"></i> Logout
+            </a>
         </div>
     </div>
     <!-- /#sidebar-wrapper -->

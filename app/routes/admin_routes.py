@@ -610,8 +610,13 @@ async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(ge
 async def ssh_keys_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    # Fetch keys and assigned users
-    keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+    # Fetch keys with owner info
+    keys = conn.execute('''
+        SELECT ssh_keys.*, users.username AS owner_name
+        FROM ssh_keys
+        LEFT JOIN users ON ssh_keys.owner_id = users.id
+    ''').fetchall()
+
     ssh_keys = []
 
     for key in keys:
@@ -630,7 +635,8 @@ async def ssh_keys_list(request: Request, user: str = Depends(get_current_admin_
             "key_name": key["key_name"],
             "expiration_date": key["expiration_date"],
             "locked": key["locked"],
-            "assigned_users": assigned_users
+            "assigned_users": assigned_users,
+            "owner_name": key["owner_name"]  # <-- Added owner name
         })
 
     conn.close()

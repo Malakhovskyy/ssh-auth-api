@@ -80,13 +80,19 @@ def init_db():
     ''')
 
     cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
+        CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            email TEXT,
-            expiration_date DATETIME,
-            locked BOOLEAN DEFAULT 0
-        )
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            expiration_date TEXT NOT NULL,
+            locked INTEGER DEFAULT 0,
+            enabled INTEGER DEFAULT 1,
+            must_change_password INTEGER DEFAULT 0,
+            password_md5salted TEXT,
+            salt TEXT,
+            context TEXT NOT NULL DEFAULT 'ssh_user',
+            created_at TEXT DEFAULT (datetime('now'))
+        );
     ''')
 
     cursor.execute('''

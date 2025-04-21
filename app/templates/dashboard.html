@@ -3,6 +3,26 @@
 {% block title %}Dashboard - SSH Key Manager{% endblock %}
 
 {% block content %}
+<!-- Timeframe Selector -->
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                Timeframe Selection
+            </div>
+            <div class="card-body">
+                <select class="form-select w-25" id="global-period">
+                    <option value="1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
+                    <option value="6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
+                    <option value="12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
+                    <option value="24h" {% if data.period == '24h' %}selected{% endif %}>Last 24 Hours</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Top Row -->
 <div class="row">
     <div class="col-md-6">
         <div class="card">
@@ -29,17 +49,13 @@
         </div>
     </div>
 </div>
-<div class="row mt-3 g-3">
+
+<!-- Total API Requests -->
+<div class="row mt-3">
     <div class="col">
         <div class="card">
             <div class="card-header">
-                <h5>Total API Requests</h5>
-                <select class="form-select" id="global-period">
-                    <option value="1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
-                    <option value="6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
-                    <option value="12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
-                    <option value="24h" {% if data.period == '24h' %}selected{% endif %}>Last 24 Hours</option>
-                </select>
+                Total API Requests
             </div>
             <div class="card-body">
                 <h5 class="card-title" id="total-requests">{{ data.total_requests }}</h5>
@@ -49,11 +65,13 @@
         </div>
     </div>
 </div>
-<div class="row mt-3">
-    <div class="col-md-3">
+
+<!-- Top Users/Servers/Failed Users -->
+<div class="row mt-3 g-3">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h5>Top 5 Successful API Users</h5>
+                Top 5 Successful API Users
             </div>
             <div class="card-body">
                 <table class="table">
@@ -69,10 +87,10 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h5>Top 5 API Servers</h5>
+                Top 5 API Servers
             </div>
             <div class="card-body">
                 <table class="table">
@@ -88,10 +106,10 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
+    <div class="col-md-4">
         <div class="card">
             <div class="card-header">
-                <h5>Top 5 Failed API Users</h5>
+                Top 5 Failed API Users
             </div>
             <div class="card-body">
                 <table class="table">
@@ -108,6 +126,8 @@
         </div>
     </div>
 </div>
+
+<!-- Script -->
 <script>
     const fetchDashboardData = (url, updateFunction) => {
         fetch(url)
@@ -120,10 +140,10 @@
     document.getElementById('global-period').addEventListener('change', function() {
         const period = this.value;
         fetchDashboardData(`/admin/dashboard-data?period_api=${period}`, data => {
-            document.getElementById('db-size').textContent = data.db_size + ' MB';
             document.getElementById('total-requests').textContent = data.total_requests;
             document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests}`;
             document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests}`;
+
             const ul = document.querySelector('.card-body ul');
             ul.innerHTML = '';
             data.logged_in_admins.forEach(admin => {
@@ -131,6 +151,7 @@
                 li.textContent = admin;
                 ul.appendChild(li);
             });
+
             const tbodyUsers = document.getElementById('top-users');
             tbodyUsers.innerHTML = '';
             data.top_users.forEach(user => {
@@ -138,6 +159,7 @@
                 tr.innerHTML = `<td>${user.name}</td><td>${user.success_count}</td>`;
                 tbodyUsers.appendChild(tr);
             });
+
             const tbodyServers = document.getElementById('top-servers');
             tbodyServers.innerHTML = '';
             data.top_servers.forEach(server => {
@@ -145,6 +167,7 @@
                 tr.innerHTML = `<td>${server.name}</td><td>${server.request_count}</td>`;
                 tbodyServers.appendChild(tr);
             });
+
             const tbodyFailedUsers = document.getElementById('top-failed-users');
             tbodyFailedUsers.innerHTML = '';
             data.top_failed_users.forEach(user => {
@@ -154,10 +177,10 @@
             });
         });
     });
-    
+
     document.addEventListener("DOMContentLoaded", function() {
-        // Simulate initial data load
         document.getElementById('global-period').dispatchEvent(new Event('change'));
     });
 </script>
+
 {% endblock %}

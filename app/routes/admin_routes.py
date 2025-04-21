@@ -447,10 +447,12 @@ async def add_ssh_user(
     expiration_date: str = Form(...),
     never_expires: str = Form(None),
     locked: str = Form(None),
+    password: str = Form(None),
+    context: str = Form(...),
     user: str = Depends(get_current_admin_user)
 ):
     conn = get_db_connection()
-    # Check for duplicate username
+
     existing_user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
     if existing_user:
         conn.close()
@@ -465,7 +467,7 @@ async def add_ssh_user(
                 "prefill_locked": locked
             }
         )
-    # Check for duplicate email
+
     existing_email = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
     if existing_email:
         conn.close()
@@ -480,16 +482,41 @@ async def add_ssh_user(
                 "prefill_locked": locked
             }
         )
+
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
+
     is_locked = 1 if locked else 0
+
+    # Prepare fields
+    password_md5salted = None
+    salt = None
+    if context == "admin":
+        if not password:
+            conn.close()
+            return templates.TemplateResponse(
+                "add_ssh_user.html",
+                {
+                    "request": request,
+                    "error": "Password is required for Admin users.",
+                    "prefill_username": username,
+                    "prefill_email": email,
+                    "prefill_expiration_date": expiration_date,
+                    "prefill_locked": locked
+                }
+            )
+        encrypted = encrypt_password(password)
+        salt = encrypted["salt"]
+        password_md5salted = encrypted["password"]
+
     conn.execute(
-        'INSERT INTO users (username, email, expiration_date, locked) VALUES (?, ?, ?, ?)',
-        (username, email, expiration_date, is_locked)
+        'INSERT INTO users (username, email, expiration_date, locked, context, password_md5salted, salt) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        (username, email, expiration_date, is_locked, context, password_md5salted, salt)
     )
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("username"), "Added SSH user", username)
+
+    log_admin_action(request.session.get("username"), "Added user", username)
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
 # -- Edit SSH User (GET page) --
@@ -514,29 +541,52 @@ async def edit_ssh_user(
     expiration_date: str = Form(...),
     never_expires: str = Form(None),
     locked: str = Form(None),
+    password: str = Form(None),
+    context: str = Form(...),
     user: str = Depends(get_current_admin_user)
 ):
     conn = get_db_connection()
 
-    # Check for duplicate username (excluding self)
+    # Check duplicate username (excluding self)
     existing_user = conn.execute('SELECT * FROM users WHERE username = ? AND id != ?', (username, user_id)).fetchone()
     if existing_user:
         conn.close()
-        return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "error": "Username already exists.", "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}})
+        return templates.TemplateResponse("edit_ssh_user.html", {
+            "request": request,
+            "error": "Username already exists.",
+            "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}
+        })
 
-    # Check for duplicate email (excluding self)
+    # Check duplicate email (excluding self)
     existing_email = conn.execute('SELECT * FROM users WHERE email = ? AND id != ?', (email, user_id)).fetchone()
     if existing_email:
         conn.close()
-        return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "error": "Email already exists.", "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}})
+        return templates.TemplateResponse("edit_ssh_user.html", {
+            "request": request,
+            "error": "Email already exists.",
+            "ssh_user": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked}
+        })
 
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
 
     is_locked = 1 if locked else 0
 
-    conn.execute('UPDATE users SET username = ?, email = ?, expiration_date = ?, locked = ? WHERE id = ?',
-                 (username, email, expiration_date, is_locked, user_id))
+    # Handle password update
+    if password:
+        encrypted = encrypt_password(password)
+        conn.execute('''
+            UPDATE users
+            SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?, password_md5salted = ?, salt = ?
+            WHERE id = ?
+        ''', (username, email, expiration_date, is_locked, context, encrypted["password"], encrypted["salt"], user_id))
+    else:
+        conn.execute('''
+            UPDATE users
+            SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?
+            WHERE id = ?
+        ''', (username, email, expiration_date, is_locked, context, user_id))
+
     conn.commit()
     conn.close()
 

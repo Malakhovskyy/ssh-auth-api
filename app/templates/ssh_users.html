@@ -19,6 +19,7 @@
                     <th>ID</th>
                     <th>Username</th>
                     <th>Email</th>
+                    <th>Context</th>
                     <th>Expiration Date</th>
                     <th>Locked</th>
                     <th>Actions</th>
@@ -30,8 +31,21 @@
                     <td>{{ user["id"] }}</td>
                     <td>{{ user["username"] }}</td>
                     <td>{{ user["email"] or "-" }}</td>
+                    <td>
+                        {% if user["context"] == "admin" %}
+                            <span class="badge bg-primary">Admin</span>
+                        {% else %}
+                            <span class="badge bg-secondary">SSH User</span>
+                        {% endif %}
+                    </td>
                     <td>{{ user["expiration_date"] or "-" }}</td>
-                    <td>{{ "🔒 Locked" if user["locked"] else "🔓 Active" }}</td>
+                    <td>
+                        {% if user["locked"] %}
+                            <span class="badge bg-danger">Locked</span>
+                        {% else %}
+                            <span class="badge bg-success">Active</span>
+                        {% endif %}
+                    </td>
                     <td>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <a href="/admin/assign-key/{{ user['id'] }}" class="btn btn-sm btn-success">🔑 Assign Key</a>

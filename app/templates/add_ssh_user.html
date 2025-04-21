@@ -39,6 +39,19 @@
                 <label class="form-check-label">Locked</label>
             </div>
 
+            <div class="mb-3">
+                <label for="password" class="form-label">Password (for Admins only):</label>
+                <input type="password" id="password" name="password" class="form-control">
+            </div>
+
+            <div class="mb-3">
+                <label for="context" class="form-label">User Role:</label>
+                <select id="context" name="context" class="form-control" required>
+                    <option value="ssh_user" selected>SSH User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary">Create SSH User</button>
         </form>
     </div>

@@ -161,7 +161,7 @@
             .then(data => {
                 const tbodyUsers = document.getElementById('top-users');
                 tbodyUsers.innerHTML = '';
-                data.top_users.forEach(user => {
+                data.forEach(user => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `<td>${user.name}</td><td>${user.success_count}</td>`;
                     tbodyUsers.appendChild(tr);
@@ -175,7 +175,7 @@
             .then(data => {
                 const tbodyServers = document.getElementById('top-servers');
                 tbodyServers.innerHTML = '';
-                data.top_servers.forEach(server => {
+                data.forEach(server => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `<td>${server.name}</td><td>${server.request_count}</td>`;
                     tbodyServers.appendChild(tr);
@@ -189,7 +189,7 @@
             .then(data => {
                 const tbodyFailedUsers = document.getElementById('top-failed-users');
                 tbodyFailedUsers.innerHTML = '';
-                data.top_failed_users.forEach(user => {
+                data.forEach(user => {
                     const tr = document.createElement('tr');
                     tr.innerHTML = `<td>${user.name}</td><td>${user.failure_count}</td>`;
                     tbodyFailedUsers.appendChild(tr);

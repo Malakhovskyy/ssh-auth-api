@@ -10,6 +10,7 @@ from services.security_service import update_admin_password, verify_admin_passwo
 from services.security_service import create_admin_with_password
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from datetime import datetime
+from main import templates
 
 init_db()  # Ensure DB initialized
 

@@ -62,8 +62,63 @@ async def logout(request: Request):
     return RedirectResponse(url="/admin/login")
 
 @admin_router.get("/admin/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, user: str = Depends(get_current_admin_user)):
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
+async def dashboard(request: Request, user: str = Depends(get_current_admin_user), period: str = "1h"):
+    conn = get_db_connection()
+
+    # Calculate DB size
+    db_path = "/app/data/sshkeys.db"
+    db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
+
+    # Calculate time period
+    now = datetime.datetime.utcnow()
+    period_mapping = {"1h": 1, "6h": 6, "12h": 12, "24h": 24}
+    hours = period_mapping.get(period, 1)
+    since = now - datetime.timedelta(hours=hours)
+
+    # API stats
+    total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since,)).fetchone()[0]
+    successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since,)).fetchone()[0]
+    failed_requests = total_requests - successful_requests
+
+    # Top successful users
+    top_users = conn.execute("""
+        SELECT username, COUNT(*) as cnt FROM api_logs
+        WHERE success = 1 AND timestamp >= ?
+        GROUP BY username ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+
+    # Top servers
+    top_servers = conn.execute("""
+        SELECT server_name, COUNT(*) as cnt FROM api_logs
+        WHERE success = 1 AND timestamp >= ?
+        GROUP BY server_name ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+
+    # Top failed users
+    top_failed_users = conn.execute("""
+        SELECT username, COUNT(*) as cnt FROM api_logs
+        WHERE success = 0 AND timestamp >= ?
+        GROUP BY username ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+
+    conn.close()
+
+    dashboard_data = {
+        "db_size": db_size,
+        "total_requests": total_requests,
+        "successful_requests": successful_requests,
+        "failed_requests": failed_requests,
+        "top_users": top_users,
+        "top_servers": top_servers,
+        "top_failed_users": top_failed_users,
+        "period": period,
+    }
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": user,
+        "data": dashboard_data
+    })
 
 @admin_router.get("/admin/change-password", response_class=HTMLResponse)
 async def change_password_page(request: Request):

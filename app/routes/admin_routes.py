@@ -45,13 +45,13 @@ async def login(request: Request, username: str = Form(...), password: str = For
         if not is_admin_ip_allowed(ip_address):
             return templates.TemplateResponse("access_denied.html", {"request": request})
 
-    admin = authenticate_admin(username, password, ip_address)
-    if not admin:
+    user = authenticate_admin(username, password, ip_address)
+    if not user:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
     # ✅ Set session values
-    request.session["admin_user"] = admin["username"]
+    request.session["username"] = user["username"]
     request.session["login_time"] = datetime.utcnow().isoformat()  # ✅ Save login time for timeout control
-    if admin["must_change_password"]:
+    if user["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
     return RedirectResponse(url="/admin/dashboard", status_code=303)
 
@@ -157,7 +157,7 @@ async def change_password_page(request: Request):
 
 @admin_router.post("/admin/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):
-    username = request.session.get("admin_user")
+    username = request.session.get("username")
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
     
@@ -184,7 +184,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
         return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
     
     log_admin_action(username, "Changed password")
-    request.session.pop("admin_user", None)
+    request.session.pop("username", None)
     return RedirectResponse(url="/admin/login", status_code=303)
 
 @admin_router.get("/admin/admins", response_class=HTMLResponse)
@@ -218,7 +218,7 @@ async def add_admin(request: Request, username: str = Form(...), password: str =
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Created new admin", object_modified=username)
+    log_admin_action(request.session.get("username"), "Created new admin", object_modified=username)
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 @admin_router.get("/admin/admins/edit/{admin_id}", response_class=HTMLResponse)
@@ -252,7 +252,7 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Edited admin", object_modified=admin["username"])
+    log_admin_action(request.session.get("username"), "Edited admin", object_modified=admin["username"])
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 
@@ -335,7 +335,7 @@ async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_
     conn.close()
 
     log_admin_action(
-        request.session.get("admin_user"),
+        request.session.get("username"),
         "Deleted admin",
         admin["username"]
     )
@@ -489,7 +489,7 @@ async def add_ssh_user(
     )
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), "Added SSH user", username)
+    log_admin_action(request.session.get("username"), "Added SSH user", username)
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
 # -- Edit SSH User (GET page) --
@@ -540,7 +540,7 @@ async def edit_ssh_user(
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Edited SSH user", username)
+    log_admin_action(request.session.get("username"), "Edited SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 # -- Delete SSH User --
@@ -557,7 +557,7 @@ async def delete_ssh_user(user_id: int, request: Request, user: str = Depends(ge
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Deleted SSH user", user_data["username"])
+    log_admin_action(request.session.get("username"), "Deleted SSH user", user_data["username"])
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
@@ -579,7 +579,7 @@ async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_
     conn.close()
 
     # ✅ Now safe to log
-    log_admin_action(request.session.get("admin_user"), "Locked SSH user", username)
+    log_admin_action(request.session.get("username"), "Locked SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
@@ -600,7 +600,7 @@ async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(ge
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Unlocked SSH user", username)
+    log_admin_action(request.session.get("username"), "Unlocked SSH user", username)
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
@@ -653,7 +653,7 @@ async def lock_ssh_key(key_id: int, request: Request, user: str = Depends(get_cu
     conn.execute('UPDATE ssh_keys SET locked = 1 WHERE id = ?', (key_id,))
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), "Locked SSH key", key_name)
+    log_admin_action(request.session.get("username"), "Locked SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Unlock SSH Key --
@@ -668,7 +668,7 @@ async def unlock_ssh_key(key_id: int, request: Request, user: str = Depends(get_
     conn.execute('UPDATE ssh_keys SET locked = 0 WHERE id = ?', (key_id,))
     conn.commit()
     conn.close()
-    log_admin_action(request.session.get("admin_user"), "Unlocked SSH key", key_name)
+    log_admin_action(request.session.get("username"), "Unlocked SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 # -- Delete SSH Key --
@@ -708,7 +708,7 @@ async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_
         modified_object = f"Deleted SSH Key '{key_name}' (no users assigned)"
 
     log_admin_action(
-        request.session.get("admin_user"),
+        request.session.get("username"),
         "Deleted SSH key",
         modified_object
     )
@@ -735,7 +735,7 @@ async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: s
 
     # Log with real names
     log_admin_action(
-        request.session.get("admin_user"),
+        request.session.get("username"),
         "Unassigned SSH key from user",
         f"{key_name} ← {username}"
     )
@@ -781,7 +781,7 @@ async def add_ssh_key(
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Created SSH key", key_name)
+    log_admin_action(request.session.get("username"), "Created SSH key", key_name)
 
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
@@ -816,7 +816,7 @@ async def add_ssh_key(
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Created SSH key", key_name)
+    log_admin_action(request.session.get("username"), "Created SSH key", key_name)
 
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
@@ -866,7 +866,7 @@ async def edit_ssh_key(
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Edited SSH key", key_name)
+    log_admin_action(request.session.get("username"), "Edited SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
 #SSH key assign
@@ -933,7 +933,7 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
 
     # Log human-readable
     log_admin_action(
-        request.session.get("admin_user"),
+        request.session.get("username"),
         "Assigned SSH keys to user",
         f"[{key_names_str}] → {username}"
     )
@@ -983,7 +983,7 @@ async def add_server(request: Request, server_name: str = Form(...), user: str =
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Created server", server_name)
+    log_admin_action(request.session.get("username"), "Created server", server_name)
 
     return RedirectResponse(url="/admin/servers", status_code=303)
 
@@ -1006,7 +1006,7 @@ async def edit_server(server_id: int, request: Request, server_name: str = Form(
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Edited server", server_name)
+    log_admin_action(request.session.get("username"), "Edited server", server_name)
 
     return RedirectResponse(url="/admin/servers", status_code=303)
 
@@ -1024,7 +1024,7 @@ async def delete_server(server_id: int, request: Request, user: str = Depends(ge
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Deleted server", server["server_name"])
+    log_admin_action(request.session.get("username"), "Deleted server", server["server_name"])
 
     return RedirectResponse(url="/admin/servers", status_code=303)
 
@@ -1099,7 +1099,7 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
     username = user_obj["username"] if user_obj else f"UserID {user_id}"
 
     log_admin_action(
-        request.session.get("admin_user"),
+        request.session.get("username"),
         "Assigned user to server",
         f"{username} → {server_name}"
     )
@@ -1121,7 +1121,7 @@ async def unassign_user_from_server(server_id: int, user_id: int, request: Reque
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
+    log_admin_action(request.session.get("username"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
 
     return RedirectResponse(url="/admin/servers", status_code=303)
 
@@ -1151,7 +1151,7 @@ async def add_allowed_ip(request: Request,
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Added Allowed IP/ASN", ip_or_cidr_or_asn)
+    log_admin_action(request.session.get("username"), "Added Allowed IP/ASN", ip_or_cidr_or_asn)
 
     return RedirectResponse(url="/admin/allowed-ips", status_code=303)
 
@@ -1180,7 +1180,7 @@ async def edit_allowed_ip(allowed_id: int,
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Edited Allowed IP/ASN", ip_or_cidr_or_asn)
+    log_admin_action(request.session.get("username"), "Edited Allowed IP/ASN", ip_or_cidr_or_asn)
 
     return RedirectResponse(url="/admin/allowed-ips", status_code=303)
 
@@ -1197,7 +1197,7 @@ async def delete_allowed_ip(allowed_id: int, request: Request, user: str = Depen
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Deleted Allowed IP/ASN", allowed_ip["ip_or_cidr_or_asn"])
+    log_admin_action(request.session.get("username"), "Deleted Allowed IP/ASN", allowed_ip["ip_or_cidr_or_asn"])
 
     return RedirectResponse(url="/admin/allowed-ips", status_code=303)
 

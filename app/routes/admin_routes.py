@@ -80,68 +80,40 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
         }
     })
 
-@admin_router.get("/admin/dashboard-data")
-async def dashboard_data(
-    period_api: str = "1h",
-    period_users: str = "1h",
-    period_servers: str = "1h",
-    period_failed: str = "1h"
-):
-    conn = get_db_connection()
-
 @admin_router.get("/admin/dashboard-dbsize")
 async def dashboard_dbsize():
     db_path = "/app/data/sshkeys.db"
     db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
     return {"db_size": db_size}
 
-    # Time calculations
-    since_api = (datetime.utcnow() - timedelta(hours=int(period_api.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
-    since_users = (datetime.utcnow() - timedelta(hours=int(period_users.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
-    since_servers = (datetime.utcnow() - timedelta(hours=int(period_servers.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
-    since_failed = (datetime.utcnow() - timedelta(hours=int(period_failed.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
 
-    # API stats
-    total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since_api,)).fetchone()[0]
-    successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since_api,)).fetchone()[0]
-    failed_requests = total_requests - successful_requests
+# Dashboard totals endpoint
+from datetime import datetime, timedelta
 
-    # Top successful users
-    top_users = conn.execute("""
-        SELECT username, COUNT(*) as cnt FROM api_logs
-        WHERE success = 1 AND timestamp >= ?
-        GROUP BY username ORDER BY cnt DESC LIMIT 5
-    """, (since_users,)).fetchall()
-    top_users_clean = [{"name": row["username"], "success_count": row["cnt"]} for row in top_users]
+@admin_router.get("/admin/dashboard-totals")
+async def dashboard_totals(period: str = "1h"):
+    conn = get_db_connection()
+    try:
+        hours = int(period.replace('h', ''))
+        since_api = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
 
-    # Top servers
-    top_servers = conn.execute("""
-        SELECT server_name, COUNT(*) as cnt FROM api_logs
-        WHERE success = 1 AND timestamp >= ?
-        GROUP BY server_name ORDER BY cnt DESC LIMIT 5
-    """, (since_servers,)).fetchall()
-    top_servers_clean = [{"name": row["server_name"], "request_count": row["cnt"]} for row in top_servers]
+        total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since_api,)).fetchone()[0]
+        successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since_api,)).fetchone()[0]
+        failed_requests = total_requests - successful_requests
 
-    # Top failed users
-    top_failed_users = conn.execute("""
-        SELECT username, COUNT(*) as cnt FROM api_logs
-        WHERE success = 0 AND timestamp >= ?
-        GROUP BY username ORDER BY cnt DESC LIMIT 5
-    """, (since_failed,)).fetchall()
-    top_failed_users_clean = [{"name": row["username"], "failure_count": row["cnt"]} for row in top_failed_users]
-
-    conn.close()
+        logged_in_admins = [row['admin_username'] for row in conn.execute(
+            "SELECT admin_username FROM admins WHERE is_logged_in = 1"
+        ).fetchall()]
+    finally:
+        conn.close()
 
     return {
-        "db_size": db_size,
-        "logged_in_admins": [],  # Placeholder for future
         "total_requests": total_requests,
         "successful_requests": successful_requests,
         "failed_requests": failed_requests,
-        "top_users": top_users_clean,
-        "top_servers": top_servers_clean,
-        "top_failed_users": top_failed_users_clean,
+        "logged_in_admins": logged_in_admins
     }
+
 
 @admin_router.get("/admin/dashboard-users")
 async def dashboard_users(period: str = "1h"):

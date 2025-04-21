@@ -121,8 +121,8 @@
         const period = this.value;
         fetchDashboardData(`/admin/dashboard-data?period=${period}`, data => {
             document.getElementById('total-requests').textContent = data.total_requests;
-            document.getElementById('successful-requests').textContent = data.successful_requests;
-            document.getElementById('failed-requests').textContent = data.failed_requests;
+            document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests}`;
+            document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests}`;
         });
     });
 
@@ -131,7 +131,7 @@
         fetchDashboardData(`/admin/dashboard-users?period=${period}`, data => {
             const tbody = document.getElementById('top-users');
             tbody.innerHTML = '';
-            data.top_users.forEach(user => {
+            data.forEach(user => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${user.name}</td><td>${user.success_count}</td>`;
                 tbody.appendChild(tr);
@@ -144,7 +144,7 @@
         fetchDashboardData(`/admin/dashboard-servers?period=${period}`, data => {
             const tbody = document.getElementById('top-servers');
             tbody.innerHTML = '';
-            data.top_servers.forEach(server => {
+            data.forEach(server => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${server.name}</td><td>${server.request_count}</td>`;
                 tbody.appendChild(tr);
@@ -157,7 +157,7 @@
         fetchDashboardData(`/admin/dashboard-failed-users?period=${period}`, data => {
             const tbody = document.getElementById('top-failed-users');
             tbody.innerHTML = '';
-            data.top_failed_users.forEach(user => {
+            data.forEach(user => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${user.name}</td><td>${user.failure_count}</td>`;
                 tbody.appendChild(tr);

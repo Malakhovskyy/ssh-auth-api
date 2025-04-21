@@ -162,16 +162,21 @@ const fetchTopFailedUsers = (period) => {
 };
 
 document.getElementById('global-period').addEventListener('change', function() {
-  const period = this.value;
-  fetchDashboardTotals(period);
-  fetchTopUsers(period);
-  fetchTopServers(period);
-  fetchTopFailedUsers(period);
+    const period = this.value;
+    fetchDashboardTotals(period);
+    fetchTopUsers(period);
+    fetchTopServers(period);
+    fetchTopFailedUsers(period);
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-  fetchDBSize();
-  document.getElementById('global-period').dispatchEvent(new Event('change'));
+    fetchDBSize();
+    // Fetch initial period data
+    const initialPeriod = document.getElementById('global-period').value;
+    fetchDashboardTotals(initialPeriod);
+    fetchTopUsers(initialPeriod);
+    fetchTopServers(initialPeriod);
+    fetchTopFailedUsers(initialPeriod);
 });
 </script>
 

@@ -23,6 +23,9 @@ app = FastAPI()
 # Load environment variables
 app.add_middleware(SessionMiddleware, secret_key=os.getenv("SMTP_PASS", "default_secret_key"))
 
+# Mount static files
+app.mount("/static", static_files, name="static")
+
 
 # Routers
 app.include_router(admin_router)

@@ -8,7 +8,6 @@ from services.token_service import generate_reset_token, verify_reset_token
 from services.security_service import update_admin_password, verify_admin_password
 from services.security_service import create_admin_with_password
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
-from datetime import datetime
 from config import templates
 
 init_db()  # Ensure DB initialized
@@ -61,6 +60,8 @@ async def logout(request: Request):
     logout_admin(request)
     return RedirectResponse(url="/admin/login")
 
+#dashboard
+
 @admin_router.get("/admin/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, user: str = Depends(get_current_admin_user), period: str = "1h"):
     conn = get_db_connection()
@@ -70,10 +71,10 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
     db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
 
     # Calculate time period
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     period_mapping = {"1h": 1, "6h": 6, "12h": 12, "24h": 24}
     hours = period_mapping.get(period, 1)
-    since = now - datetime.timedelta(hours=hours)
+    since = now - timedelta(hours=hours)
 
     # API stats
     total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since,)).fetchone()[0]

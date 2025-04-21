@@ -16,6 +16,7 @@
                 <tr>
                     <th>SSH Key Name</th>
                     <th>Assigned Users</th>
+                    <th>Owner</th>
                     <th>Expiration Date</th>
                     <th>Locked</th>
                     <th>Actions</th>
@@ -39,6 +40,7 @@
                             {% endfor %}
                         </div>
                     </td>
+                    <td>{{ key["owner_name"] or "-" }}</td>
                     <td>{{ key["expiration_date"] or "-" }}</td>
                     <td>{{ "🔒 Locked" if key["locked"] else "🔓 Active" }}</td>
                     <td>

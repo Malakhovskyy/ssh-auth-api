@@ -35,6 +35,16 @@
                 <textarea name="ssh_key_data" class="form-control" rows="8" required>{{ decrypted_key_data }}</textarea>
             </div>
 
+            <div class="mb-3">
+                <label for="owner_id" class="form-label">Select Owner:</label>
+                <select id="owner_id" name="owner_id" class="form-control" required>
+                    <option value="">-- Select User --</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if user.id == key_data['owner_id'] %}selected{% endif %}>{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary">Save Changes</button>
 
         </form>

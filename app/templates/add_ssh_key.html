@@ -21,7 +21,17 @@
             <div class="mb-3">
                 <label for="ssh_key_data" class="form-label">SSH Key Data:</label>
                 <textarea id="ssh_key_data" name="ssh_key_data" class="form-control" rows="8" required></textarea>
-            </div>    
+            </div>
+            
+            <div class="mb-3">
+                <label for="owner_id" class="form-label">Select Owner:</label>
+                <select id="owner_id" name="owner_id" class="form-control" required>
+                    <option value="">-- Select User --</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}">{{ user.username }}</option>
+                    {% endfor %}
+                </select>
+            </div>
 
             <div class="mb-3">
                 <label for="expiration_date" class="form-label">Expiration Date:</label>

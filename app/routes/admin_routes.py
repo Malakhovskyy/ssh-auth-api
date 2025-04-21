@@ -740,7 +740,14 @@ async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: s
 # -- Add SSH Key (GET form) --
 @admin_router.get("/admin/ssh-keys/add", response_class=HTMLResponse)
 async def add_ssh_key_page(request: Request, user: str = Depends(get_current_admin_user)):
-    return templates.TemplateResponse("add_ssh_key.html", {"request": request})
+    conn = get_db_connection()
+    users = conn.execute('SELECT id, username FROM users').fetchall()
+    conn.close()
+
+    return templates.TemplateResponse("add_ssh_key.html", {
+        "request": request,
+        "users": users
+    })
 
 # -- Add SSH Key (POST form submit) --
 @admin_router.post("/admin/ssh-keys/add")
@@ -812,15 +819,20 @@ async def add_ssh_key(
 @admin_router.get("/admin/ssh-keys/edit/{key_id}", response_class=HTMLResponse)
 async def edit_ssh_key_page(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    row = conn.execute('SELECT * FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    key_data = conn.execute('SELECT * FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    users = conn.execute('SELECT id, username FROM users').fetchall()
     conn.close()
-    if not row:
-        raise HTTPException(status_code=404, detail="SSH Key not found")
-    decrypted_key_data = decrypt_sensitive_value(row["ssh_key_data"]) if row["ssh_key_data"] else ""
+
+    if not key_data:
+        return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+    decrypted_key_data = decrypt_sensitive_value(key_data['ssh_key_data'])
+
     return templates.TemplateResponse("edit_ssh_key.html", {
         "request": request,
-        "key_data": row,
-        "decrypted_key_data": decrypted_key_data
+        "key_data": key_data,
+        "decrypted_key_data": decrypted_key_data,
+        "users": users
     })
 
 @admin_router.post("/admin/ssh-keys/edit/{key_id}")

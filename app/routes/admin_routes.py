@@ -129,18 +129,53 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
 
 @admin_router.get("/admin/dashboard-data")
 async def dashboard_data(period: str = "1h"):
-    # (copy same logic from /admin/dashboard backend function)
-    # but instead of returning TemplateResponse, return JSON
-
+    conn = get_db_connection()
+ 
+    db_path = "/app/data/sshkeys.db"
+    db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
+ 
+    now = datetime.utcnow()
+    period_mapping = {"1h": 1, "6h": 6, "12h": 12, "24h": 24}
+    hours = period_mapping.get(period, 1)
+    since = now - timedelta(hours=hours)
+ 
+    total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since,)).fetchone()[0]
+    successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since,)).fetchone()[0]
+    failed_requests = total_requests - successful_requests
+ 
+    top_users = conn.execute("""
+        SELECT username, COUNT(*) as cnt FROM api_logs
+        WHERE success = 1 AND timestamp >= ?
+        GROUP BY username ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+ 
+    top_servers = conn.execute("""
+        SELECT server_name, COUNT(*) as cnt FROM api_logs
+        WHERE success = 1 AND timestamp >= ?
+        GROUP BY server_name ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+ 
+    top_failed_users = conn.execute("""
+        SELECT username, COUNT(*) as cnt FROM api_logs
+        WHERE success = 0 AND timestamp >= ?
+        GROUP BY username ORDER BY cnt DESC LIMIT 5
+    """, (since,)).fetchall()
+ 
+    top_users_clean = [{"name": row["username"], "success_count": row["cnt"]} for row in top_users]
+    top_servers_clean = [{"name": row["server_name"], "request_count": row["cnt"]} for row in top_servers]
+    top_failed_users_clean = [{"name": row["username"], "failure_count": row["cnt"]} for row in top_failed_users]
+ 
+    conn.close()
+ 
     return {
         "db_size": db_size,
         "logged_in_admins": 0,
         "total_requests": total_requests,
         "successful_requests": successful_requests,
         "failed_requests": failed_requests,
-        "top_users": [{"name": ..., "success_count": ...}],
-        "top_servers": [{"name": ..., "request_count": ...}],
-        "top_failed_users": [{"name": ..., "failure_count": ...}],
+        "top_users": top_users_clean,
+        "top_servers": top_servers_clean,
+        "top_failed_users": top_failed_users_clean,
     }
 
 

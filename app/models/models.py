@@ -69,17 +69,6 @@ def init_db():
 
     # Create tables if they don't exist
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS admins (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            admin_username TEXT UNIQUE NOT NULL,
-            email TEXT,
-            password_md5salted TEXT NOT NULL,
-            salt TEXT NOT NULL,
-            must_change_password BOOLEAN DEFAULT 1
-        )
-    ''')
-
-    cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT NOT NULL UNIQUE,
@@ -210,10 +199,6 @@ def init_db():
 
     # ====== SMART COLUMN ADDITIONS HERE ======
 
-    # Admins table must have 'enabled' column
-    if not column_exists(conn, "admins", "enabled"):
-        print("[DB INIT] Adding missing 'enabled' column to admins...")
-        conn.execute('ALTER TABLE admins ADD COLUMN enabled BOOLEAN DEFAULT 1')
 
 
 # Insert default value if not exists
@@ -222,7 +207,8 @@ def init_db():
 
     # ====== CREATE DEFAULT ADMIN IF NONE EXIST ======
 
-    cursor.execute('SELECT COUNT(*) as count FROM admins')
+    # Check if any admin users exist
+    cursor.execute("SELECT COUNT(*) as count FROM users WHERE context = 'admin'")
     count = cursor.fetchone()["count"]
 
     if count == 0:
@@ -235,8 +221,8 @@ def init_db():
         password_hash = encrypt_password(default_password, salt)
 
         cursor.execute('''
-            INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
-            VALUES (?, ?, ?, ?, 1, 1)
+            INSERT INTO users (username, email, password_md5salted, salt, must_change_password, enabled, context, expiration_date, locked, created_at)
+            VALUES (?, ?, ?, ?, 1, 1, 'admin', '2099-12-31 23:59:59', 0, datetime('now'))
         ''', (default_username, default_email, password_hash, salt))
 
         print(f"[INIT_DB] Default admin created: username=admin password=admin123 (you must change password on first login!)")

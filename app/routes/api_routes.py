@@ -5,6 +5,7 @@ from models.models import get_db_connection
 from services.ip_filter_service import is_ip_allowed
 from services.encryption_service import decrypt_sensitive_value
 from datetime import datetime
+from config import templates
 
 api_router = APIRouter()
 

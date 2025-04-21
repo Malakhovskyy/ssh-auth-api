@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
-from fastapi.templating import Jinja2Templates
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
 from services.ip_filter_service import is_admin_ip_allowed
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
@@ -10,7 +9,7 @@ from services.security_service import update_admin_password, verify_admin_passwo
 from services.security_service import create_admin_with_password
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from datetime import datetime
-from main import templates
+from config import templates
 
 init_db()  # Ensure DB initialized
 

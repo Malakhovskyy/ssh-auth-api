@@ -70,7 +70,11 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
 async def change_password_page(request: Request):
     return templates.TemplateResponse("change_password.html", {"request": request})
 
-from services.security_service import update_admin_password, verify_admin_password
+# --- DEUBG ONLY --- #
+@admin_router.get("/admin/debug-test", response_class=HTMLResponse)
+async def debug_test(request: Request):
+    return templates.TemplateResponse("debug_test.html", {"request": request})
+# --- DEUBG ONLY --- #    
 
 @admin_router.post("/admin/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):

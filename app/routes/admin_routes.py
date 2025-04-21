@@ -89,8 +89,11 @@ async def dashboard_data(
 ):
     conn = get_db_connection()
 
+@admin_router.get("/admin/dashboard-dbsize")
+async def dashboard_dbsize():
     db_path = "/app/data/sshkeys.db"
     db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
+    return {"db_size": db_size}
 
     # Time calculations
     since_api = (datetime.utcnow() - timedelta(hours=int(period_api.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")

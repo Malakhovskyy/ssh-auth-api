@@ -34,6 +34,12 @@
         <div class="card">
             <div class="card-header">
                 <h5>Total API Requests</h5>
+                <select class="form-select" id="global-period">
+                    <option value="1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
+                    <option value="6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
+                    <option value="12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
+                    <option value="24h" {% if data.period == '24h' %}selected{% endif %}>Last 24 Hours</option>
+                </select>
             </div>
             <div class="card-body">
                 <h5 class="card-title" id="total-requests">{{ data.total_requests }}</h5>

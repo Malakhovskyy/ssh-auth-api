@@ -164,5 +164,55 @@
             });
         });
     });
+    
+    document.addEventListener("DOMContentLoaded", function() {
+        // Load Total API Requests (1h default)
+        fetchDashboardData(`/admin/dashboard-data?period=1h`, data => {
+            document.getElementById('db-size').textContent = data.db_size + ' MB';
+            document.getElementById('total-requests').textContent = data.total_requests;
+            document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests}`;
+            document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests}`;
+            const ul = document.querySelector('.card-body ul');
+            ul.innerHTML = '';
+            data.logged_in_admins.forEach(admin => {
+                const li = document.createElement('li');
+                li.textContent = admin;
+                ul.appendChild(li);
+            });
+        });
+    
+        // Load Top Successful API Users (1h default)
+        fetchDashboardData(`/admin/dashboard-users?period=1h`, data => {
+            const tbody = document.getElementById('top-users');
+            tbody.innerHTML = '';
+            data.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${user.name}</td><td>${user.success_count}</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    
+        // Load Top Servers (1h default)
+        fetchDashboardData(`/admin/dashboard-servers?period=1h`, data => {
+            const tbody = document.getElementById('top-servers');
+            tbody.innerHTML = '';
+            data.forEach(server => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${server.name}</td><td>${server.request_count}</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    
+        // Load Top Failed API Users (1h default)
+        fetchDashboardData(`/admin/dashboard-failed-users?period=1h`, data => {
+            const tbody = document.getElementById('top-failed-users');
+            tbody.innerHTML = '';
+            data.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${user.name}</td><td>${user.failure_count}</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    });
 </script>
 {% endblock %}

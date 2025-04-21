@@ -119,7 +119,7 @@
 
     document.getElementById('period-api').addEventListener('change', function() {
         const period = this.value;
-        fetchDashboardData(`/admin/dashboard-data?period=${period}`, data => {
+        fetchDashboardData(`/admin/dashboard-data?period_api=${period}`, data => {
             document.getElementById('db-size').textContent = data.db_size + ' MB';
             document.getElementById('total-requests').textContent = data.total_requests;
             document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests}`;

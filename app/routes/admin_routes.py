@@ -49,7 +49,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
     if not admin:
         return templates.TemplateResponse("login.html", {"request": request, "error": "Invalid credentials"})
     # ✅ Set session values
-    request.session["admin_user"] = admin["admin_username"]
+    request.session["admin_user"] = admin["username"]
     request.session["login_time"] = datetime.utcnow().isoformat()  # ✅ Save login time for timeout control
     if admin["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)

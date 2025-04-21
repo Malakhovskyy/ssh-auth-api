@@ -63,22 +63,33 @@ async def logout(request: Request):
 #dashboard
 
 @admin_router.get("/admin/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, user: str = Depends(get_current_admin_user), period: str = "1h"):
+async def dashboard(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": user
+    })
+
+@admin_router.get("/admin/dashboard-data")
+async def dashboard_data(
+    period_api: str = "1h",
+    period_users: str = "1h",
+    period_servers: str = "1h",
+    period_failed: str = "1h"
+):
     conn = get_db_connection()
 
-    # Calculate DB size
     db_path = "/app/data/sshkeys.db"
     db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
 
-    # Calculate time period
-    now = datetime.utcnow()
-    period_mapping = {"1h": 1, "6h": 6, "12h": 12, "24h": 24}
-    hours = period_mapping.get(period, 1)
-    since = now - timedelta(hours=hours)
+    # Time calculations
+    since_api = (datetime.utcnow() - timedelta(hours=int(period_api.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
+    since_users = (datetime.utcnow() - timedelta(hours=int(period_users.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
+    since_servers = (datetime.utcnow() - timedelta(hours=int(period_servers.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
+    since_failed = (datetime.utcnow() - timedelta(hours=int(period_failed.replace('h', '')))).strftime("%Y-%m-%d %H:%M:%S")
 
     # API stats
-    total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since,)).fetchone()[0]
-    successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since,)).fetchone()[0]
+    total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since_api,)).fetchone()[0]
+    successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since_api,)).fetchone()[0]
     failed_requests = total_requests - successful_requests
 
     # Top successful users
@@ -86,90 +97,30 @@ async def dashboard(request: Request, user: str = Depends(get_current_admin_user
         SELECT username, COUNT(*) as cnt FROM api_logs
         WHERE success = 1 AND timestamp >= ?
         GROUP BY username ORDER BY cnt DESC LIMIT 5
-    """, (since,)).fetchall()
+    """, (since_users,)).fetchall()
+    top_users_clean = [{"name": row["username"], "success_count": row["cnt"]} for row in top_users]
 
     # Top servers
     top_servers = conn.execute("""
         SELECT server_name, COUNT(*) as cnt FROM api_logs
         WHERE success = 1 AND timestamp >= ?
         GROUP BY server_name ORDER BY cnt DESC LIMIT 5
-    """, (since,)).fetchall()
+    """, (since_servers,)).fetchall()
+    top_servers_clean = [{"name": row["server_name"], "request_count": row["cnt"]} for row in top_servers]
 
     # Top failed users
     top_failed_users = conn.execute("""
         SELECT username, COUNT(*) as cnt FROM api_logs
         WHERE success = 0 AND timestamp >= ?
         GROUP BY username ORDER BY cnt DESC LIMIT 5
-    """, (since,)).fetchall()
-
-    # Transform query results into clean lists of dictionaries
-    top_users_clean = [{"name": row["username"], "success_count": row["cnt"]} for row in top_users]
-    top_servers_clean = [{"name": row["server_name"], "request_count": row["cnt"]} for row in top_servers]
+    """, (since_failed,)).fetchall()
     top_failed_users_clean = [{"name": row["username"], "failure_count": row["cnt"]} for row in top_failed_users]
 
     conn.close()
 
-    dashboard_data = {
-        "db_size": db_size,
-        "total_requests": total_requests,
-        "successful_requests": successful_requests,
-        "failed_requests": failed_requests,
-        "top_users": top_users_clean,
-        "top_servers": top_servers_clean,
-        "top_failed_users": top_failed_users_clean,
-        "period": period,
-        "logged_in_admins": 0,
-    }
-
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "user": user,
-        "data": dashboard_data
-    })
-
-@admin_router.get("/admin/dashboard-data")
-async def dashboard_data(period: str = "1h"):
-    conn = get_db_connection()
- 
-    db_path = "/app/data/sshkeys.db"
-    db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
- 
-    now = datetime.utcnow()
-    period_mapping = {"1h": 1, "6h": 6, "12h": 12, "24h": 24}
-    hours = period_mapping.get(period, 1)
-    since = now - timedelta(hours=hours)
- 
-    total_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE timestamp >= ?", (since,)).fetchone()[0]
-    successful_requests = conn.execute("SELECT COUNT(*) FROM api_logs WHERE success = 1 AND timestamp >= ?", (since,)).fetchone()[0]
-    failed_requests = total_requests - successful_requests
- 
-    top_users = conn.execute("""
-        SELECT username, COUNT(*) as cnt FROM api_logs
-        WHERE success = 1 AND timestamp >= ?
-        GROUP BY username ORDER BY cnt DESC LIMIT 5
-    """, (since,)).fetchall()
- 
-    top_servers = conn.execute("""
-        SELECT server_name, COUNT(*) as cnt FROM api_logs
-        WHERE success = 1 AND timestamp >= ?
-        GROUP BY server_name ORDER BY cnt DESC LIMIT 5
-    """, (since,)).fetchall()
- 
-    top_failed_users = conn.execute("""
-        SELECT username, COUNT(*) as cnt FROM api_logs
-        WHERE success = 0 AND timestamp >= ?
-        GROUP BY username ORDER BY cnt DESC LIMIT 5
-    """, (since,)).fetchall()
- 
-    top_users_clean = [{"name": row["username"], "success_count": row["cnt"]} for row in top_users]
-    top_servers_clean = [{"name": row["server_name"], "request_count": row["cnt"]} for row in top_servers]
-    top_failed_users_clean = [{"name": row["username"], "failure_count": row["cnt"]} for row in top_failed_users]
- 
-    conn.close()
- 
     return {
         "db_size": db_size,
-        "logged_in_admins": 0,
+        "logged_in_admins": [],  # Placeholder for future
         "total_requests": total_requests,
         "successful_requests": successful_requests,
         "failed_requests": failed_requests,
@@ -177,7 +128,6 @@ async def dashboard_data(period: str = "1h"):
         "top_servers": top_servers_clean,
         "top_failed_users": top_failed_users_clean,
     }
-
 
 @admin_router.get("/admin/change-password", response_class=HTMLResponse)
 async def change_password_page(request: Request):

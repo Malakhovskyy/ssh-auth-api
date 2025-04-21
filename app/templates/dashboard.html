@@ -20,7 +20,11 @@
                 Logged-in Admin Users
             </div>
             <div class="card-body">
-                <h5 class="card-title">{{ data.logged_in_admins }}</h5>
+                <ul>
+                    {% for admin in data.logged_in_admins %}
+                    <li>{{ admin }}</li>
+                    {% endfor %}
+                </ul>
             </div>
         </div>
     </div>
@@ -30,7 +34,7 @@
         <div class="card">
             <div class="card-header">
                 Total API Requests
-                    <select class="form-select" id="period-select">
+                <select class="form-select" id="period-api">
                     <option value="?period=1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
                     <option value="?period=6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
                     <option value="?period=12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
@@ -48,6 +52,12 @@
 <div class="row mt-3">
     <div class="col-md-4">
         <h5>Top 5 Successful API Users</h5>
+        <select class="form-select" id="period-users">
+            <option value="?period=1h">Last 1 Hour</option>
+            <option value="?period=6h">Last 6 Hours</option>
+            <option value="?period=12h">Last 12 Hours</option>
+            <option value="?period=24h">Last 24 Hours</option>
+        </select>
         <table class="table">
             <tbody id="top-users">
                 {% for user in data.top_users %}
@@ -61,6 +71,12 @@
     </div>
     <div class="col-md-4">
         <h5>Top 5 API Servers</h5>
+        <select class="form-select" id="period-servers">
+            <option value="?period=1h">Last 1 Hour</option>
+            <option value="?period=6h">Last 6 Hours</option>
+            <option value="?period=12h">Last 12 Hours</option>
+            <option value="?period=24h">Last 24 Hours</option>
+        </select>
         <table class="table">
             <tbody id="top-servers">
                 {% for server in data.top_servers %}
@@ -74,6 +90,12 @@
     </div>
     <div class="col-md-4">
         <h5>Top 5 Failed API Users</h5>
+        <select class="form-select" id="period-failed">
+            <option value="?period=1h">Last 1 Hour</option>
+            <option value="?period=6h">Last 6 Hours</option>
+            <option value="?period=12h">Last 12 Hours</option>
+            <option value="?period=24h">Last 24 Hours</option>
+        </select>
         <table class="table">
             <tbody id="top-failed-users">
                 {% for user in data.top_failed_users %}
@@ -86,31 +108,61 @@
         </table>
     </div>
 </div>
-    <script>
-    document.getElementById('period-select').addEventListener('change', function() {
-      const period = this.value;
-      fetch(`/admin/dashboard-data?period=${period}`)
-        .then(response => response.json())
-        .then(data => {
-          document.getElementById('db-size').textContent = data.db_size + ' MB';
-          document.getElementById('total-requests').textContent = data.total_requests;
-          document.getElementById('successful-requests').textContent = data.successful_requests;
-          document.getElementById('failed-requests').textContent = data.failed_requests;
-
-          const rebuildTable = (tableId, items, rowBuilder) => {
-            const tbody = document.getElementById(tableId);
-            tbody.innerHTML = '';
-            items.forEach(item => {
-              const tr = document.createElement('tr');
-              tr.innerHTML = rowBuilder(item);
-              tbody.appendChild(tr);
+<script>
+    const fetchDashboardData = (url, updateFunction) => {
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                updateFunction(data);
             });
-          };
+    };
 
-          rebuildTable('top-users', data.top_users, item => `<td>${item.name}</td><td>${item.success_count}</td>`);
-          rebuildTable('top-servers', data.top_servers, item => `<td>${item.name}</td><td>${item.request_count}</td>`);
-          rebuildTable('top-failed-users', data.top_failed_users, item => `<td>${item.name}</td><td>${item.failure_count}</td>`);
+    document.getElementById('period-api').addEventListener('change', function() {
+        const period = this.value;
+        fetchDashboardData(`/admin/dashboard-data?period=${period}`, data => {
+            document.getElementById('total-requests').textContent = data.total_requests;
+            document.getElementById('successful-requests').textContent = data.successful_requests;
+            document.getElementById('failed-requests').textContent = data.failed_requests;
         });
     });
-    </script>
+
+    document.getElementById('period-users').addEventListener('change', function() {
+        const period = this.value;
+        fetchDashboardData(`/admin/dashboard-users?period=${period}`, data => {
+            const tbody = document.getElementById('top-users');
+            tbody.innerHTML = '';
+            data.top_users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${user.name}</td><td>${user.success_count}</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    });
+
+    document.getElementById('period-servers').addEventListener('change', function() {
+        const period = this.value;
+        fetchDashboardData(`/admin/dashboard-servers?period=${period}`, data => {
+            const tbody = document.getElementById('top-servers');
+            tbody.innerHTML = '';
+            data.top_servers.forEach(server => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${server.name}</td><td>${server.request_count}</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    });
+
+    document.getElementById('period-failed').addEventListener('change', function() {
+        const period = this.value;
+        fetchDashboardData(`/admin/dashboard-failed-users?period=${period}`, data => {
+            const tbody = document.getElementById('top-failed-users');
+            tbody.innerHTML = '';
+            data.top_failed_users.forEach(user => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${user.name}</td><td>${user.failure_count}</td>`;
+                tbody.appendChild(tr);
+            });
+        });
+    });
+</script>
 {% endblock %}

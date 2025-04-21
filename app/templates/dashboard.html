@@ -102,7 +102,7 @@ const fetchDBSize = () => {
 };
 
 const fetchDashboardTotals = (period) => {
-  fetch(`/admin/dashboard-data?period_api=${period}`)
+  fetch(`/admin/dashboard-totals?period=${period}`)
     .then(response => response.json())
     .then(data => {
       document.getElementById('total-requests').textContent = data.total_requests;

@@ -66,7 +66,18 @@ async def logout(request: Request):
 async def dashboard(request: Request, user: str = Depends(get_current_admin_user)):
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
-        "user": user
+        "user": user,
+        "data": {
+            "db_size": 0,
+            "logged_in_admins": [],
+            "total_requests": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "top_users": [],
+            "top_servers": [],
+            "top_failed_users": [],
+            "period": "1h"
+        }
     })
 
 @admin_router.get("/admin/dashboard-data")

@@ -106,8 +106,8 @@ const fetchDashboardTotals = (period) => {
     .then(response => response.json())
     .then(data => {
       document.getElementById('total-requests').textContent = data.total_requests;
-      document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests}`;
-      document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests}`;
+      document.getElementById('successful-requests').textContent = `Successful Requests: ${data.successful_requests ?? data.success_count ?? 0}`;
+      document.getElementById('failed-requests').textContent = `Failed Requests: ${data.failed_requests ?? data.fail_count ?? 0}`;
 
       const ul = document.getElementById('admin-users-list');
       ul.innerHTML = '';

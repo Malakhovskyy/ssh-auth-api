@@ -109,10 +109,12 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS ssh_keys (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key_name TEXT UNIQUE NOT NULL,
-            expiration_date DATETIME,
-            locked BOOLEAN DEFAULT 0,
-            ssh_key_data TEXT
+            key_name TEXT NOT NULL UNIQUE,
+            expiration_date TEXT NOT NULL,
+            locked INTEGER DEFAULT 0,
+            ssh_key_data TEXT NOT NULL,
+            owner_id INTEGER,
+            FOREIGN KEY (owner_id) REFERENCES users(id)
         )
     ''')
 

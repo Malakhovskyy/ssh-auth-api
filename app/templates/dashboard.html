@@ -35,10 +35,10 @@
             <div class="card-header">
                 Total API Requests
                 <select class="form-select" id="period-api">
-                    <option value="?period=1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
-                    <option value="?period=6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
-                    <option value="?period=12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
-                    <option value="?period=24h" {% if data.period == '24h' %}selected{% endif %}>Last 24 Hours</option>
+                    <option value="1h" {% if data.period == '1h' %}selected{% endif %}>Last 1 Hour</option>
+                    <option value="6h" {% if data.period == '6h' %}selected{% endif %}>Last 6 Hours</option>
+                    <option value="12h" {% if data.period == '12h' %}selected{% endif %}>Last 12 Hours</option>
+                    <option value="24h" {% if data.period == '24h' %}selected{% endif %}>Last 24 Hours</option>
                 </select>
             </div>
             <div class="card-body">
@@ -53,10 +53,10 @@
     <div class="col-md-4">
         <h5>Top 5 Successful API Users</h5>
         <select class="form-select" id="period-users">
-            <option value="?period=1h">Last 1 Hour</option>
-            <option value="?period=6h">Last 6 Hours</option>
-            <option value="?period=12h">Last 12 Hours</option>
-            <option value="?period=24h">Last 24 Hours</option>
+            <option value="1h">Last 1 Hour</option>
+            <option value="6h">Last 6 Hours</option>
+            <option value="12h">Last 12 Hours</option>
+            <option value="24h">Last 24 Hours</option>
         </select>
         <table class="table">
             <tbody id="top-users">
@@ -72,10 +72,10 @@
     <div class="col-md-4">
         <h5>Top 5 API Servers</h5>
         <select class="form-select" id="period-servers">
-            <option value="?period=1h">Last 1 Hour</option>
-            <option value="?period=6h">Last 6 Hours</option>
-            <option value="?period=12h">Last 12 Hours</option>
-            <option value="?period=24h">Last 24 Hours</option>
+            <option value="1h">Last 1 Hour</option>
+            <option value="6h">Last 6 Hours</option>
+            <option value="12h">Last 12 Hours</option>
+            <option value="24h">Last 24 Hours</option>
         </select>
         <table class="table">
             <tbody id="top-servers">
@@ -91,10 +91,10 @@
     <div class="col-md-4">
         <h5>Top 5 Failed API Users</h5>
         <select class="form-select" id="period-failed">
-            <option value="?period=1h">Last 1 Hour</option>
-            <option value="?period=6h">Last 6 Hours</option>
-            <option value="?period=12h">Last 12 Hours</option>
-            <option value="?period=24h">Last 24 Hours</option>
+            <option value="1h">Last 1 Hour</option>
+            <option value="6h">Last 6 Hours</option>
+            <option value="12h">Last 12 Hours</option>
+            <option value="24h">Last 24 Hours</option>
         </select>
         <table class="table">
             <tbody id="top-failed-users">

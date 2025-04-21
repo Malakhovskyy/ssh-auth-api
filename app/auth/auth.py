@@ -6,7 +6,7 @@ from models.models import get_setting
 
 def authenticate_admin(username: str, password: str, ip_address: str):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE username = ? AND context = ?', (username, 'admin')).fetchone()
     conn.close()
 
     if not admin:

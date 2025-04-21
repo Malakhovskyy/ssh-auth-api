@@ -162,7 +162,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
         raise HTTPException(status_code=401, detail="Unauthorized")
     
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE username = ? AND context = "admin"', (username,)).fetchone()
     if not admin:
         conn.close()
         raise HTTPException(status_code=400, detail="Admin not found.")
@@ -190,7 +190,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
 @admin_router.get("/admin/admins", response_class=HTMLResponse)
 async def admins_page(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    admins = conn.execute('SELECT * FROM admins').fetchall()
+    admins = conn.execute('SELECT * FROM users WHERE context = "admin"').fetchall()
     conn.close()
     return templates.TemplateResponse("admin_list.html", {"request": request, "admins": admins})
 
@@ -204,17 +204,17 @@ async def add_admin(request: Request, username: str = Form(...), password: str =
         return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Passwords do not match", "username": username, "email": email})
 
     conn = get_db_connection()
-    existing_admin = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
+    existing_admin = conn.execute('SELECT * FROM users WHERE username = ? AND context = "admin"', (username,)).fetchone()
     if existing_admin:
         conn.close()
         return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Admin username already exists", "username": username, "email": email})
 
-    success, error = await create_admin_with_password(username, password, email)
-    if not success:
-        conn.close()
-        return templates.TemplateResponse("admin_add.html", {"request": request, "error": error, "username": username, "email": email})
-
-    conn.execute('UPDATE admins SET email = ? WHERE admin_username = ?', (email, username))
+    # Insert into users table with context = 'admin'
+    encrypted_password = encrypt_password(password)
+    salt = encrypted_password["salt"]
+    password_md5salted = encrypted_password["password"]
+    conn.execute('INSERT INTO users (username, email, password_md5salted, salt, context, enabled, must_change_password, expiration_date, locked, created_at) VALUES (?, ?, ?, ?, "admin", 1, 0, ?, 0, datetime("now"))',
+                 (username, email, password_md5salted, salt, "2099-12-31 23:59:59"))
     conn.commit()
     conn.close()
 
@@ -224,7 +224,7 @@ async def add_admin(request: Request, username: str = Form(...), password: str =
 @admin_router.get("/admin/admins/edit/{admin_id}", response_class=HTMLResponse)
 async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
     conn.close()
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
@@ -233,7 +233,7 @@ async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(g
 @admin_router.post("/admin/admins/edit/{admin_id}")
 async def edit_admin(admin_id: int, request: Request, email: str = Form(...), password: str = Form(None), confirm_password: str = Form(None), enabled: int = Form(...), force_password_change: int = Form(0)):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
     if not admin:
         conn.close()
         raise HTTPException(status_code=404, detail="Admin not found")
@@ -243,16 +243,16 @@ async def edit_admin(admin_id: int, request: Request, email: str = Form(...), pa
             conn.close()
             return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin, "error": "Passwords do not match"})
 
-        success, error = await update_admin_password(admin['admin_username'], password)
+        success, error = await update_admin_password(admin['username'], password)
         if not success:
             conn.close()
             return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin, "error": error})
 
-    conn.execute('UPDATE admins SET email = ?, enabled = ?, must_change_password = ? WHERE id = ?', (email, enabled, force_password_change, admin_id))
+    conn.execute('UPDATE users SET email = ?, enabled = ?, must_change_password = ? WHERE id = ? AND context = "admin"', (email, enabled, force_password_change, admin_id))
     conn.commit()
     conn.close()
 
-    log_admin_action(request.session.get("admin_user"), "Edited admin", object_modified=admin["admin_username"])
+    log_admin_action(request.session.get("admin_user"), "Edited admin", object_modified=admin["username"])
     return RedirectResponse(url="/admin/admins", status_code=303)
 
 
@@ -312,7 +312,7 @@ async def update_settings(
 @admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)
 async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
     conn.close()
     if not admin:
         raise HTTPException(status_code=404, detail="Admin not found")
@@ -324,21 +324,20 @@ async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depe
 async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    admin = conn.execute('SELECT * FROM admins WHERE id = ?', (admin_id,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
 
     if not admin:
         conn.close()
         raise HTTPException(status_code=404, detail="Admin not found")
 
-    conn.execute('DELETE FROM admins WHERE id = ?', (admin_id,))
+    conn.execute('DELETE FROM users WHERE id = ?', (admin_id,))
     conn.commit()
     conn.close()
 
-    # ✅ Correct positional call
     log_admin_action(
         request.session.get("admin_user"),
         "Deleted admin",
-        admin["admin_username"]
+        admin["username"]
     )
     return RedirectResponse(url="/admin/admins", status_code=303)
 
@@ -382,13 +381,13 @@ async def forgot_password_page(request: Request):
 @admin_router.post("/admin/forgot-password")
 async def forgot_password(request: Request, email: str = Form(...)):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM admins WHERE email = ?', (email,)).fetchone()
+    admin = conn.execute('SELECT * FROM users WHERE email = ? AND context = "admin"', (email,)).fetchone()
     conn.close()
 
     if not admin:
         return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Email not found."})
 
-    token = generate_reset_token(admin['admin_username'])
+    token = generate_reset_token(admin['username'])
     reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
 
     send_password_reset_email(email, reset_link)

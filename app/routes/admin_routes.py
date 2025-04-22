@@ -26,7 +26,9 @@ async def login_page(request: Request):
             client_ip = request.client.host
         if not is_admin_ip_allowed(client_ip):
             return templates.TemplateResponse("access_denied.html", {"request": request})
-    return templates.TemplateResponse("login.html", {"request": request})
+
+    error = request.query_params.get("error")
+    return templates.TemplateResponse("login.html", {"request": request, "error": error})
 
 @admin_router.post("/admin/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):

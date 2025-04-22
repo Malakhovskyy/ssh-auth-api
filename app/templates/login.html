@@ -3,6 +3,11 @@
 {% block title %}Login - SSH Key Manager{% endblock %}
 
 {% block content %}
+{% if error %}
+<div class="alert alert-danger" role="alert">
+    {{ error }}
+</div>
+{% endif %}
 <div class="card">
     <div class="card-body">
         <h5 class="card-title">Admin Login</h5>

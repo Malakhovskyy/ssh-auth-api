@@ -32,7 +32,7 @@
                                 <div style="display: flex; align-items: center;">
                                     <span>{{ user["username"] }}</span>
                                     <form method="post" action="/admin/ssh-keys/unassign/{{ key['id'] }}/{{ user['id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
-                                        <button type="submit" class="btn btn-sm btn-danger" style="margin-left: 5px;">❌</button>
+                                        <button type="submit" class="btn btn-delete" style="margin-left: 5px;">✕</button>
                                     </form>
                                 </div>
                             {% else %}
@@ -58,7 +58,7 @@
                             {% endif %}
 
                             <form method="post" action="/admin/ssh-keys/delete/{{ key['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
-                                <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                                <button type="submit" class="btn btn-delete" title="Delete">✕</button>
                             </form>
                         </div>
                     </td>

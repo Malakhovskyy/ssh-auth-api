@@ -95,3 +95,27 @@ input.form-control, select.form-select, textarea.form-control {
 #wrapper {
     transition: margin-left 0.25s ease-out;
 }
+/* === Custom button delete style === */
+.btn-delete {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    color: #dc3545; /* Bootstrap danger color */
+    background: transparent;
+    border: 2px solid #dc3545;
+    border-radius: 6px;
+    padding: 0;
+    transition: background-color 0.2s, color 0.2s;
+  }
+  
+  .btn-delete:hover {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .btn-delete:focus {
+    box-shadow: none;
+  }

@@ -62,7 +62,7 @@
                             {% endif %}
 
                             <form method="post" action="/admin/ssh-users/delete/{{ user['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
-                                <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
+                                <button type="submit" class="btn btn-delete" title="Delete">✕</button>
                             </form>
                         </div>
                     </td>

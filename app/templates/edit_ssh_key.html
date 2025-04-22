@@ -35,6 +35,7 @@
                 <textarea name="ssh_key_data" class="form-control" rows="8" required>{{ decrypted_key_data }}</textarea>
             </div>
 
+            {% if request.session.get('context') == 'admin' %}
             <div class="mb-3">
                 <label for="owner_id" class="form-label">Select Owner:</label>
                 <select id="owner_id" name="owner_id" class="form-control" required>
@@ -44,6 +45,9 @@
                     {% endfor %}
                 </select>
             </div>
+            {% else %}
+            <input type="hidden" name="owner_id" value="{{ request.session.get('user_id') }}">
+            {% endif %}
 
             <button type="submit" class="btn btn-primary">Save Changes</button>
 

@@ -45,8 +45,8 @@ async def create_user(username: str, password: str, email: str, context: str = '
         conn.close()
         return False, "Email already exists."
 
-    # Validate password complexity if needed (only for admins)
-    if context == 'admin' and get_setting('enforce_password_complexity') == '1':
+    # Validate password complexity if needed (for all users)
+    if get_setting('enforce_password_complexity') == '1':
         valid, message = is_password_complex(password, username)
         if not valid:
             conn.close()

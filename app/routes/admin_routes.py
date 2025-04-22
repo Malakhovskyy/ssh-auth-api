@@ -617,6 +617,13 @@ async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_
 async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
+    context = request.session.get("context")
+    current_user_id = request.session.get("user_id")
+
+    if context == "ssh_user":
+        conn.close()
+        raise HTTPException(status_code=403, detail="Unauthorized to unassign SSH keys.")
+
     # Fetch key name
     key_rec = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
     key_name = key_rec["key_name"] if key_rec else f"KeyID {key_id}"
@@ -789,6 +796,9 @@ async def edit_ssh_key(
 #SSH key assign
 @admin_router.get("/admin/assign-key/{user_id}", response_class=HTMLResponse)
 async def assign_key_page(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    context = request.session.get("context")
+    if context == "ssh_user":
+        raise HTTPException(status_code=403, detail="Unauthorized to assign SSH keys.")
     conn = get_db_connection()
 
     user_row = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
@@ -811,6 +821,9 @@ async def assign_key_page(user_id: int, request: Request, user: str = Depends(ge
 
 @admin_router.post("/admin/assign-key/{user_id}")
 async def assign_key_submit(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    context = request.session.get("context")
+    if context == "ssh_user":
+        raise HTTPException(status_code=403, detail="Unauthorized to assign SSH keys.")
     form = await request.form()
     selected_keys = form.getlist("ssh_keys")  # List of selected SSH key IDs
 

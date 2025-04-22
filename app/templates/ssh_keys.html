@@ -31,9 +31,11 @@
                             {% for user in key["assigned_users"] %}
                                 <div style="display: flex; align-items: center;">
                                     <span>{{ user["username"] }}</span>
+                                    {% if request.session.get('context') == 'admin' %}
                                     <form method="post" action="/admin/ssh-keys/unassign/{{ key['id'] }}/{{ user['id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
                                         <button type="submit" class="btn btn-delete" style="margin-left: 5px;">✕</button>
                                     </form>
+                                    {% endif %}
                                 </div>
                             {% else %}
                                 No users

@@ -677,6 +677,15 @@ async def add_ssh_key(
         'INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data, owner_id) VALUES (?, ?, ?, ?, ?)',
         (key_name, expiration_date, is_locked, encrypted_key_data, owner_id_final)
     )
+
+    # --- Automatically assign the created SSH key to the ssh-user who created it ---
+    new_key_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
+    if request.session.get("context") == "ssh_user":
+        conn.execute(
+            'INSERT INTO assignments (ssh_key_id, user_id) VALUES (?, ?)',
+            (new_key_id, request.session.get("user_id"))
+        )
+
     conn.commit()
     conn.close()
 

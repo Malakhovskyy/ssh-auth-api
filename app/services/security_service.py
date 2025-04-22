@@ -1,6 +1,13 @@
 import secrets
-from models.models import get_db_connection, encrypt_password, get_setting
+import hashlib
+from models.models import get_db_connection, get_setting
 from services.password_validator import is_password_complex
+
+# Use SHA-256 for password encryption
+def encrypt_password(password: str, salt: str) -> str:
+    """Encrypt password using SHA-256 and salt."""
+    salted_password = (password + salt).encode('utf-8')
+    return hashlib.sha256(salted_password).hexdigest()
 
 # New: Salt generator
 def generate_salt(length: int = 8) -> str:
@@ -106,3 +113,13 @@ async def update_user(user_id: int, username: str, email: str, expiration_date: 
 async def verify_admin_password(admin_row, plain_password: str) -> bool:
     expected_hash = encrypt_password(plain_password, admin_row['salt'])
     return expected_hash == admin_row['password_md5salted'] 
+
+
+# Role helpers
+def is_admin(request) -> bool:
+    """Check if the current user is an admin."""
+    return request.session.get('context') == 'admin'
+
+def is_ssh_user(request) -> bool:
+    """Check if the current user is an SSH user."""
+    return request.session.get('context') == 'ssh_user'    

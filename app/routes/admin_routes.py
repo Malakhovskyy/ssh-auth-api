@@ -49,6 +49,8 @@ async def login(request: Request, username: str = Form(...), password: str = For
     # ✅ Set session values
     request.session["username"] = user["username"]
     request.session["login_time"] = datetime.utcnow().isoformat()  # ✅ Save login time for timeout control
+    request.session["context"] = user["context"]  # Store user context (admin/ssh_user)
+    request.session["user_id"] = user["id"]        # Store user id
     if user["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
     return RedirectResponse(url="/admin/dashboard", status_code=303)
@@ -487,12 +489,22 @@ async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(ge
 async def ssh_keys_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    # Fetch keys with owner info
-    keys = conn.execute('''
-        SELECT ssh_keys.*, users.username AS owner_name
-        FROM ssh_keys
-        LEFT JOIN users ON ssh_keys.owner_id = users.id
-    ''').fetchall()
+    context = request.session.get("context")
+    current_user_id = request.session.get("user_id")
+
+    if context == "ssh_user":
+        keys = conn.execute('''
+            SELECT ssh_keys.*, users.username AS owner_name
+            FROM ssh_keys
+            LEFT JOIN users ON ssh_keys.owner_id = users.id
+            WHERE ssh_keys.owner_id = ?
+        ''', (current_user_id,)).fetchall()
+    else:
+        keys = conn.execute('''
+            SELECT ssh_keys.*, users.username AS owner_name
+            FROM ssh_keys
+            LEFT JOIN users ON ssh_keys.owner_id = users.id
+        ''').fetchall()
 
     ssh_keys = []
 
@@ -554,11 +566,18 @@ async def unlock_ssh_key(key_id: int, request: Request, user: str = Depends(get_
 async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    # Get key name
-    row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    # Get key name and owner_id
+    row = conn.execute('SELECT key_name, owner_id FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
     if not row:
         conn.close()
         raise HTTPException(status_code=404, detail="SSH Key not found")
+
+    context = request.session.get("context")
+    current_user_id = request.session.get("user_id")
+
+    if context == "ssh_user" and row["owner_id"] != current_user_id:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Unauthorized to delete this key")
 
     key_name = row["key_name"]
 
@@ -652,9 +671,11 @@ async def add_ssh_key(
 
     encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
 
+    owner_id_final = request.session.get("user_id") if request.session.get("context") == "ssh_user" else owner_id
+
     conn.execute(
         'INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data, owner_id) VALUES (?, ?, ?, ?, ?)',
-        (key_name, expiration_date, is_locked, encrypted_key_data, owner_id)
+        (key_name, expiration_date, is_locked, encrypted_key_data, owner_id_final)
     )
     conn.commit()
     conn.close()
@@ -704,10 +725,19 @@ async def edit_ssh_key_page(key_id: int, request: Request, user: str = Depends(g
     conn = get_db_connection()
     key_data = conn.execute('SELECT * FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
     users = conn.execute('SELECT id, username FROM users').fetchall()
-    conn.close()
 
     if not key_data:
+        conn.close()
         return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+    context = request.session.get("context")
+    current_user_id = request.session.get("user_id")
+
+    if context == "ssh_user" and key_data["owner_id"] != current_user_id:
+        conn.close()
+        raise HTTPException(status_code=403, detail="Unauthorized to edit this key")
+
+    conn.close()
 
     decrypted_key_data = decrypt_sensitive_value(key_data['ssh_key_data'])
 

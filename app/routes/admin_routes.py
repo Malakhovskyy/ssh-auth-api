@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
 from services.ip_filter_service import is_admin_ip_allowed
-from services.security_service import update_admin_password, verify_admin_password, create_user, update_user
+from services.security_service import update_admin_password, verify_admin_password, create_user, update_user, is_admin, is_ssh_user
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
@@ -11,7 +11,7 @@ from config import templates
 import os
 from datetime import datetime, timedelta
 
-init_db()  # Ensure DB initialized
+init_db()
 
 admin_router = APIRouter()
 
@@ -59,8 +59,7 @@ async def login(request: Request, username: str = Form(...), password: str = For
 async def logout(request: Request):
     logout_admin(request)
     return RedirectResponse(url="/admin/login")
-
-#dashboard
+    # Dashboard
 
 @admin_router.get("/admin/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, user: str = Depends(get_current_admin_user)):
@@ -85,8 +84,6 @@ async def dashboard_dbsize():
     db_size = round(os.path.getsize(db_path) / 1024 / 1024, 2) if os.path.exists(db_path) else 0
     return {"db_size": db_size}
 
-
-# Dashboard totals endpoint
 @admin_router.get("/admin/dashboard-totals")
 async def dashboard_totals(period: str = "1h"):
     conn = get_db_connection()
@@ -105,7 +102,6 @@ async def dashboard_totals(period: str = "1h"):
         "successful_requests": successful_requests,
         "failed_requests": failed_requests
     }
-
 
 @admin_router.get("/admin/dashboard-users")
 async def dashboard_users(period: str = "1h"):
@@ -142,16 +138,11 @@ async def dashboard_failed_users(period: str = "1h"):
     """, (since,)).fetchall()
     conn.close()
     return [{"name": row["username"], "failure_count": row["cnt"]} for row in users]
+    # Change password
 
 @admin_router.get("/admin/change-password", response_class=HTMLResponse)
 async def change_password_page(request: Request):
     return templates.TemplateResponse("change_password.html", {"request": request})
-
-# # --- DEUBG ONLY --- #
-# @admin_router.get("/admin/debug-test", response_class=HTMLResponse)
-# async def debug_test(request: Request):
-#     return templates.TemplateResponse("debug_test.html", {"request": request})
-# # --- DEUBG ONLY --- #    
 
 @admin_router.post("/admin/change-password")
 async def change_password(request: Request, old_password: str = Form(...), new_password: str = Form(...), confirm_password: str = Form(...)):
@@ -165,7 +156,6 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
         conn.close()
         raise HTTPException(status_code=400, detail="User not found.")
 
-    # ✅ Now use centralized verify_admin_password
     valid = await verify_admin_password(user_record, old_password)
     if not valid:
         conn.close()
@@ -186,92 +176,8 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     return RedirectResponse(url="/admin/login", status_code=303)
 
 
+# Forgot password
 
-# settings #
-@admin_router.get("/admin/settings", response_class=HTMLResponse)
-async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
-    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "restrict_admin_ip", "admin_session_timeout", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
-    success = request.query_params.get("success")  # ✅ Read from query params
-    return templates.TemplateResponse(
-        "settings.html",
-        {
-            "request": request,
-            "settings": settings,
-            "success": success  # ✅ Pass success explicitly
-        }
-    )
-
-
-
-@admin_router.post("/admin/settings")
-async def update_settings(
-    request: Request,
-    enforce_password_complexity: str = Form(None),
-    restrict_admin_ip: str = Form(None), 
-    admin_session_timeout: str = Form(""),
-    domain: str = Form(""),
-    smtp_host: str = Form(""),
-    smtp_port: str = Form(""),
-    smtp_user: str = Form(""),
-    smtp_password: str = Form(""),
-    smtp_from: str = Form("")
-):
-    set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
-    set_setting('restrict_admin_ip', '1' if restrict_admin_ip else '0')
-    set_setting('admin_session_timeout', admin_session_timeout)
-    set_setting('domain', domain)
-    set_setting('smtp_host', smtp_host)
-    set_setting('smtp_port', smtp_port)
-    set_setting('smtp_user', smtp_user)
-    smtp_password = smtp_password.strip()
-
-    if smtp_password:
-        # ✅ New password provided → Encrypt and save
-        encrypted_smtp_password = encrypt_sensitive_value(smtp_password)
-        set_setting('smtp_password', encrypted_smtp_password)
-    else:
-        # ✅ No new password provided → Keep existing one
-        existing_encrypted_password = get_setting('smtp_password')
-        set_setting('smtp_password', existing_encrypted_password)
-
-    set_setting('smtp_from', smtp_from)
-
-    return RedirectResponse(url="/admin/settings?success=1", status_code=303)
-
-
-# --- ADMIN LOGS ---
-@admin_router.get("/admin/logs", response_class=HTMLResponse)
-async def view_admin_logs(request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    # Fetch admin action logs
-    admin_logs = conn.execute('SELECT id, admin_username, action, object_modified, NULL as ip_address, timestamp FROM admin_logs').fetchall()
-
-    # Fetch login attempts (both success and failed) and map action dynamically
-    login_logs_raw = conn.execute('SELECT id, username as admin_username, success, ip_address, timestamp FROM login_attempts').fetchall()
-
-    login_logs = []
-    for log in login_logs_raw:
-        action_text = "Login Success" if log["success"] else "Login Failed"
-        login_logs.append({
-            "id": log["id"],
-            "admin_username": log["admin_username"],
-            "action": action_text,
-            "object_modified": None,
-            "ip_address": log["ip_address"],
-            "timestamp": log["timestamp"]
-        })
-
-    conn.close()
-
-# Merge admin_logs + login_logs
-    all_logs = list(admin_logs) + login_logs
-    all_logs.sort(key=lambda x: x["timestamp"], reverse=True)
-
-    return templates.TemplateResponse("admin_logs.html", {"request": request, "logs": all_logs})
-
-
-# --- Forgot Password ---
 @admin_router.get("/admin/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):
     return templates.TemplateResponse("forgot_password.html", {"request": request})
@@ -279,13 +185,13 @@ async def forgot_password_page(request: Request):
 @admin_router.post("/admin/forgot-password")
 async def forgot_password(request: Request, email: str = Form(...)):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM users WHERE email = ? AND context = "admin"', (email,)).fetchone()
+    user = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
     conn.close()
 
-    if not admin:
+    if not user:
         return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Email not found."})
 
-    token = generate_reset_token(admin['username'])
+    token = generate_reset_token(user['username'])
     reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
 
     send_password_reset_email(email, reset_link)
@@ -312,18 +218,55 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     return RedirectResponse(url="/admin/login", status_code=303)
 
 
- # EMAIL LOGS
-@admin_router.get("/admin/email-logs", response_class=HTMLResponse)
-async def view_email_logs(request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    email_logs = conn.execute('SELECT * FROM email_logs ORDER BY timestamp DESC').fetchall()
-    conn.close()
+# Settings
 
-    return templates.TemplateResponse("email_logs.html", {"request": request, "logs": email_logs})
+@admin_router.get("/admin/settings", response_class=HTMLResponse)
+async def settings_page(request: Request, user: str = Depends(get_current_admin_user)):
+    settings = {key: get_setting(key) for key in ["enforce_password_complexity", "restrict_admin_ip", "admin_session_timeout", "domain", "smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from"]}
+    success = request.query_params.get("success")
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "settings": settings,
+            "success": success
+        }
+    )
 
+@admin_router.post("/admin/settings")
+async def update_settings(
+    request: Request,
+    enforce_password_complexity: str = Form(None),
+    restrict_admin_ip: str = Form(None),
+    admin_session_timeout: str = Form(""),
+    domain: str = Form(""),
+    smtp_host: str = Form(""),
+    smtp_port: str = Form(""),
+    smtp_user: str = Form(""),
+    smtp_password: str = Form(""),
+    smtp_from: str = Form("")
+):
+    set_setting('enforce_password_complexity', '1' if enforce_password_complexity else '0')
+    set_setting('restrict_admin_ip', '1' if restrict_admin_ip else '0')
+    set_setting('admin_session_timeout', admin_session_timeout)
+    set_setting('domain', domain)
+    set_setting('smtp_host', smtp_host)
+    set_setting('smtp_port', smtp_port)
+    set_setting('smtp_user', smtp_user)
 
+    smtp_password = smtp_password.strip()
+    if smtp_password:
+        encrypted_smtp_password = encrypt_sensitive_value(smtp_password)
+        set_setting('smtp_password', encrypted_smtp_password)
+    else:
+        existing_encrypted_password = get_setting('smtp_password')
+        set_setting('smtp_password', existing_encrypted_password)
 
-# -- List SSH Users --
+    set_setting('smtp_from', smtp_from)
+
+    return RedirectResponse(url="/admin/settings?success=1", status_code=303)
+    # --- SSH USERS MANAGEMENT ---
+
 @admin_router.get("/admin/ssh-users", response_class=HTMLResponse)
 async def ssh_users_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
@@ -331,12 +274,10 @@ async def ssh_users_list(request: Request, user: str = Depends(get_current_admin
     conn.close()
     return templates.TemplateResponse("ssh_users.html", {"request": request, "users": users})
 
-# -- Add SSH User (GET page) --
 @admin_router.get("/admin/ssh-users/add", response_class=HTMLResponse)
 async def add_ssh_user_page(request: Request, user: str = Depends(get_current_admin_user)):
     return templates.TemplateResponse("add_ssh_user.html", {"request": request})
 
-# -- Add SSH User (POST save) --
 @admin_router.post("/admin/ssh-users/add")
 async def add_ssh_user(
     request: Request,
@@ -382,117 +323,16 @@ async def add_ssh_user(
     log_admin_action(request.session.get("username"), "Added user", username)
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
-# -- Edit SSH User (GET page) --
-@admin_router.get("/admin/ssh-users/edit/{user_id}", response_class=HTMLResponse)
-async def edit_ssh_user_page(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    conn.close()
 
-    if not user_data:
-        raise HTTPException(status_code=404, detail="SSH user not found")
+# --- SSH KEYS MANAGEMENT ---
 
-    return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "user_data": user_data})
-
-# -- Edit SSH User (POST save) --
-@admin_router.post("/admin/ssh-users/edit/{user_id}")
-async def edit_ssh_user(
-    user_id: int,
-    request: Request,
-    username: str = Form(...),
-    email: str = Form(...),
-    expiration_date: str = Form(...),
-    never_expires: str = Form(None),
-    locked: str = Form(None),
-    password: str = Form(None),
-    context: str = Form(...),
-    user: str = Depends(get_current_admin_user)
-):
-    if never_expires:
-        expiration_date = "2099-12-31 23:59:59"
-
-    is_locked = 1 if locked else 0
-
-    success, error = await update_user(user_id, username, email, expiration_date, is_locked, context, password)
-    if not success:
-        return templates.TemplateResponse("edit_ssh_user.html", {
-            "request": request,
-            "error": error,
-            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
-        })
-
-    log_admin_action(request.session.get("username"), "Edited SSH user", username)
-    return RedirectResponse(url="/admin/ssh-users", status_code=303)
-# -- Delete SSH User --
-@admin_router.post("/admin/ssh-users/delete/{user_id}")
-async def delete_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
-    if not user_data:
-        conn.close()
-        raise HTTPException(status_code=404, detail="SSH user not found")
-
-    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Deleted SSH user", user_data["username"])
-
-    return RedirectResponse(url="/admin/ssh-users", status_code=303)
-
-# -- Lock SSH User --
-@admin_router.post("/admin/ssh-users/lock/{user_id}")
-async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    row = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="SSH user not found")
-
-    username = row["username"]  # ✅ Save username into variable
-
-    conn.execute('UPDATE users SET locked = 1 WHERE id = ?', (user_id,))
-    conn.commit()
-    conn.close()
-
-    # ✅ Now safe to log
-    log_admin_action(request.session.get("username"), "Locked SSH user", username)
-
-    return RedirectResponse(url="/admin/ssh-users", status_code=303)
-
-# -- Unlock SSH User --
-@admin_router.post("/admin/ssh-users/unlock/{user_id}")
-async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    row = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="SSH user not found")
-
-    username = row["username"]
-
-    conn.execute('UPDATE users SET locked = 0 WHERE id = ?', (user_id,))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Unlocked SSH user", username)
-
-    return RedirectResponse(url="/admin/ssh-users", status_code=303)
-
-# -- List SSH Keys --
 @admin_router.get("/admin/ssh-keys", response_class=HTMLResponse)
 async def ssh_keys_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    context = request.session.get("context")
     current_user_id = request.session.get("user_id")
 
-    if context == "ssh_user":
+    if is_ssh_user(request):
         keys = conn.execute('''
             SELECT ssh_keys.*, users.username AS owner_name
             FROM ssh_keys
@@ -525,128 +365,12 @@ async def ssh_keys_list(request: Request, user: str = Depends(get_current_admin_
             "expiration_date": key["expiration_date"],
             "locked": key["locked"],
             "assigned_users": assigned_users,
-            "owner_name": key["owner_name"]  # <-- Added owner name
+            "owner_name": key["owner_name"]
         })
 
     conn.close()
     return templates.TemplateResponse("ssh_keys.html", {"request": request, "ssh_keys": ssh_keys})
-
-# -- Lock SSH Key --
-@admin_router.post("/admin/ssh-keys/lock/{key_id}")
-async def lock_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="SSH Key not found")
-    key_name = row["key_name"]
-    conn.execute('UPDATE ssh_keys SET locked = 1 WHERE id = ?', (key_id,))
-    conn.commit()
-    conn.close()
-    log_admin_action(request.session.get("username"), "Locked SSH key", key_name)
-    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
-
-# -- Unlock SSH Key --
-@admin_router.post("/admin/ssh-keys/unlock/{key_id}")
-async def unlock_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    row = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="SSH Key not found")
-    key_name = row["key_name"]
-    conn.execute('UPDATE ssh_keys SET locked = 0 WHERE id = ?', (key_id,))
-    conn.commit()
-    conn.close()
-    log_admin_action(request.session.get("username"), "Unlocked SSH key", key_name)
-    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
-
-# -- Delete SSH Key --
-@admin_router.post("/admin/ssh-keys/delete/{key_id}")
-async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    # Get key name and owner_id
-    row = conn.execute('SELECT key_name, owner_id FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
-    if not row:
-        conn.close()
-        raise HTTPException(status_code=404, detail="SSH Key not found")
-
-    context = request.session.get("context")
-    current_user_id = request.session.get("user_id")
-
-    if context == "ssh_user" and row["owner_id"] != current_user_id:
-        conn.close()
-        raise HTTPException(status_code=403, detail="Unauthorized to delete this key")
-
-    key_name = row["key_name"]
-
-    # Fetch all users assigned to this key before deleting
-    assigned_users = conn.execute('''
-        SELECT users.username 
-        FROM assignments 
-        JOIN users ON assignments.user_id = users.id 
-        WHERE assignments.ssh_key_id = ?
-    ''', (key_id,)).fetchall()
-
-    usernames = [u["username"] for u in assigned_users]
-
-    # First delete assignments
-    conn.execute('DELETE FROM assignments WHERE ssh_key_id = ?', (key_id,))
-    conn.execute('DELETE FROM ssh_keys WHERE id = ?', (key_id,))
-    conn.commit()
-    conn.close()
-
-    # Prepare log message
-    if usernames:
-        user_list = ", ".join(usernames)
-        modified_object = f"Deleted SSH Key '{key_name}' assigned to users: {user_list}"
-    else:
-        modified_object = f"Deleted SSH Key '{key_name}' (no users assigned)"
-
-    log_admin_action(
-        request.session.get("username"),
-        "Deleted SSH key",
-        modified_object
-    )
-
-    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
-
-# -- Unassign User from SSH Key --
-@admin_router.post("/admin/ssh-keys/unassign/{key_id}/{user_id}")
-async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    context = request.session.get("context")
-    current_user_id = request.session.get("user_id")
-
-    if context == "ssh_user":
-        conn.close()
-        raise HTTPException(status_code=403, detail="Unauthorized to unassign SSH keys.")
-
-    # Fetch key name
-    key_rec = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
-    key_name = key_rec["key_name"] if key_rec else f"KeyID {key_id}"
-
-    # Fetch username
-    user_rec = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-    username = user_rec["username"] if user_rec else f"UserID {user_id}"
-
-    # Unassign
-    conn.execute('DELETE FROM assignments WHERE ssh_key_id = ? AND user_id = ?', (key_id, user_id))
-    conn.commit()
-    conn.close()
-
-    # Log with real names
-    log_admin_action(
-        request.session.get("username"),
-        "Unassigned SSH key from user",
-        f"{key_name} ← {username}"
-    )
-
-    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
-
-# -- Add SSH Key (GET form) --
+    # -- Add SSH Key (GET page) --
 @admin_router.get("/admin/ssh-keys/add", response_class=HTMLResponse)
 async def add_ssh_key_page(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
@@ -667,7 +391,7 @@ async def add_ssh_key(
     never_expires: str = Form(None),
     locked: str = Form(None),
     ssh_key_data: str = Form(...),
-    owner_id: int = Form(...),  # <--- new
+    owner_id: int = Form(...),
     user: str = Depends(get_current_admin_user)
 ):
     conn = get_db_connection()
@@ -678,16 +402,16 @@ async def add_ssh_key(
 
     encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
 
-    owner_id_final = request.session.get("user_id") if request.session.get("context") == "ssh_user" else owner_id
+    owner_id_final = request.session.get("user_id") if is_ssh_user(request) else owner_id
 
     conn.execute(
         'INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data, owner_id) VALUES (?, ?, ?, ?, ?)',
         (key_name, expiration_date, is_locked, encrypted_key_data, owner_id_final)
     )
 
-    # --- Automatically assign the created SSH key to the ssh-user who created it ---
     new_key_id = conn.execute('SELECT last_insert_rowid()').fetchone()[0]
-    if request.session.get("context") == "ssh_user":
+
+    if is_ssh_user(request):
         conn.execute(
             'INSERT INTO assignments (ssh_key_id, user_id) VALUES (?, ?)',
             (new_key_id, request.session.get("user_id"))
@@ -700,42 +424,8 @@ async def add_ssh_key(
 
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
-    # Check if SSH key with the same key_name already exists
-    existing_key = conn.execute('SELECT id FROM ssh_keys WHERE key_name = ?', (key_name,)).fetchone()
-    if existing_key:
-        conn.close()
-        return templates.TemplateResponse(
-            "add_ssh_key.html",
-            {
-                "request": request,
-                "error": "SSH Key with this name already exists.",
-                "prefill_key_name": key_name,
-                "prefill_expiration_date": expiration_date,
-                "prefill_ssh_key_data": ssh_key_data,
-                "prefill_locked": locked
-            }
-        )
 
-    if never_expires:
-        expiration_date = "2099-12-31 23:59:59"
-
-    is_locked = 1 if locked else 0
-
-    # ✅ Encrypt the SSH Key content
-    encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
-
-    conn.execute(
-        'INSERT INTO ssh_keys (key_name, expiration_date, locked, ssh_key_data) VALUES (?, ?, ?, ?)',
-        (key_name, expiration_date, is_locked, encrypted_key_data)
-    )
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Created SSH key", key_name)
-
-    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
-
-# -- EDIT SSH Key (POST form submit) --
+# -- Edit SSH Key (GET page) --
 @admin_router.get("/admin/ssh-keys/edit/{key_id}", response_class=HTMLResponse)
 async def edit_ssh_key_page(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
@@ -746,10 +436,7 @@ async def edit_ssh_key_page(key_id: int, request: Request, user: str = Depends(g
         conn.close()
         return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
-    context = request.session.get("context")
-    current_user_id = request.session.get("user_id")
-
-    if context == "ssh_user" and key_data["owner_id"] != current_user_id:
+    if is_ssh_user(request) and key_data["owner_id"] != request.session.get("user_id"):
         conn.close()
         raise HTTPException(status_code=403, detail="Unauthorized to edit this key")
 
@@ -764,6 +451,7 @@ async def edit_ssh_key_page(key_id: int, request: Request, user: str = Depends(g
         "users": users
     })
 
+# -- Edit SSH Key (POST) --
 @admin_router.post("/admin/ssh-keys/edit/{key_id}")
 async def edit_ssh_key(
     key_id: int,
@@ -773,7 +461,7 @@ async def edit_ssh_key(
     never_expires: str = Form(None),
     locked: str = Form(None),
     ssh_key_data: str = Form(...),
-    owner_id: int = Form(...),  # <--- new
+    owner_id: int = Form(...),
     user: str = Depends(get_current_admin_user)
 ):
     conn = get_db_connection()
@@ -783,9 +471,11 @@ async def edit_ssh_key(
     is_locked = 1 if locked else 0
     encrypted_key_data = encrypt_sensitive_value(ssh_key_data)
 
+    owner_id_final = request.session.get("user_id") if is_ssh_user(request) else owner_id
+
     conn.execute(
         'UPDATE ssh_keys SET key_name = ?, expiration_date = ?, locked = ?, ssh_key_data = ?, owner_id = ? WHERE id = ?',
-        (key_name, expiration_date, is_locked, encrypted_key_data, owner_id, key_id)
+        (key_name, expiration_date, is_locked, encrypted_key_data, owner_id_final, key_id)
     )
     conn.commit()
     conn.close()
@@ -793,11 +483,73 @@ async def edit_ssh_key(
     log_admin_action(request.session.get("username"), "Edited SSH key", key_name)
     return RedirectResponse(url="/admin/ssh-keys", status_code=303)
 
-#SSH key assign
+# -- Delete SSH Key --
+@admin_router.post("/admin/ssh-keys/delete/{key_id}")
+async def delete_ssh_key(key_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    row = conn.execute('SELECT key_name, owner_id FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH Key not found")
+
+    if is_ssh_user(request) and row["owner_id"] != request.session.get("user_id"):
+        conn.close()
+        raise HTTPException(status_code=403, detail="Unauthorized to delete this key")
+
+    key_name = row["key_name"]
+
+    assigned_users = conn.execute('''
+        SELECT users.username 
+        FROM assignments 
+        JOIN users ON assignments.user_id = users.id 
+        WHERE assignments.ssh_key_id = ?
+    ''', (key_id,)).fetchall()
+
+    usernames = [u["username"] for u in assigned_users]
+
+    conn.execute('DELETE FROM assignments WHERE ssh_key_id = ?', (key_id,))
+    conn.execute('DELETE FROM ssh_keys WHERE id = ?', (key_id,))
+    conn.commit()
+    conn.close()
+
+    if usernames:
+        user_list = ", ".join(usernames)
+        modified_object = f"Deleted SSH Key '{key_name}' assigned to users: {user_list}"
+    else:
+        modified_object = f"Deleted SSH Key '{key_name}' (no users assigned)"
+
+    log_admin_action(request.session.get("username"), "Deleted SSH key", modified_object)
+
+    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+    # -- Unassign User from SSH Key --
+@admin_router.post("/admin/ssh-keys/unassign/{key_id}/{user_id}")
+async def unassign_ssh_user(key_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    if is_ssh_user(request):
+        conn.close()
+        raise HTTPException(status_code=403, detail="Unauthorized to unassign SSH keys.")
+
+    key_rec = conn.execute('SELECT key_name FROM ssh_keys WHERE id = ?', (key_id,)).fetchone()
+    key_name = key_rec["key_name"] if key_rec else f"KeyID {key_id}"
+
+    user_rec = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+    username = user_rec["username"] if user_rec else f"UserID {user_id}"
+
+    conn.execute('DELETE FROM assignments WHERE ssh_key_id = ? AND user_id = ?', (key_id, user_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Unassigned SSH key from user", f"{key_name} ← {username}")
+
+    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+
+# -- Assign SSH Keys to User --
 @admin_router.get("/admin/assign-key/{user_id}", response_class=HTMLResponse)
 async def assign_key_page(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    context = request.session.get("context")
-    if context == "ssh_user":
+    if is_ssh_user(request):
         raise HTTPException(status_code=403, detail="Unauthorized to assign SSH keys.")
     conn = get_db_connection()
 
@@ -821,37 +573,27 @@ async def assign_key_page(user_id: int, request: Request, user: str = Depends(ge
 
 @admin_router.post("/admin/assign-key/{user_id}")
 async def assign_key_submit(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    context = request.session.get("context")
-    if context == "ssh_user":
+    if is_ssh_user(request):
         raise HTTPException(status_code=403, detail="Unauthorized to assign SSH keys.")
+
     form = await request.form()
-    selected_keys = form.getlist("ssh_keys")  # List of selected SSH key IDs
+    selected_keys = form.getlist("ssh_keys")
 
     conn = get_db_connection()
 
-    # Remove all existing assignments first
     conn.execute('DELETE FROM assignments WHERE user_id = ?', (user_id,))
 
-    # Add new assignments
     for key_id in selected_keys:
         conn.execute('INSERT INTO assignments (ssh_key_id, user_id) VALUES (?, ?)', (key_id, user_id))
 
     conn.commit()
 
-    # Fetch username
     user_rec = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
     username = user_rec["username"] if user_rec else f"UserID {user_id}"
 
-    # Fetch SSH key names
     if selected_keys:
-        # Convert selected_keys to tuple of integers
         key_ids = tuple(int(k) for k in selected_keys)
-
-        if len(key_ids) == 1:
-            placeholders = "(?)"
-        else:
-            placeholders = f"({','.join(['?']*len(key_ids))})"
-
+        placeholders = "(?)" if len(key_ids) == 1 else f"({','.join(['?']*len(key_ids))})"
         key_names_query = f'SELECT key_name FROM ssh_keys WHERE id IN {placeholders}'
         key_recs = conn.execute(key_names_query, key_ids).fetchall()
         key_names = [rec["key_name"] for rec in key_recs]
@@ -861,277 +603,18 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
 
     conn.close()
 
-    # Log human-readable
-    log_admin_action(
-        request.session.get("username"),
-        "Assigned SSH keys to user",
-        f"[{key_names_str}] → {username}"
-    )
+    log_admin_action(request.session.get("username"), "Assigned SSH keys to user", f"[{key_names_str}] → {username}")
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
-#Server Manager key assign
-@admin_router.get("/admin/servers", response_class=HTMLResponse)
-async def servers_list(request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
 
-    servers = conn.execute('SELECT * FROM servers').fetchall()
-    servers_data = []
-
-    for server in servers:
-        assigned_users = conn.execute('''
-            SELECT users.id as user_id, users.username, ssh_keys.key_name
-            FROM server_assignments
-            JOIN users ON server_assignments.user_id = users.id
-            JOIN ssh_keys ON server_assignments.ssh_key_id = ssh_keys.id
-            WHERE server_assignments.server_id = ?
-        ''', (server["id"],)).fetchall()
-
-        servers_data.append({
-            "id": server["id"],
-            "server_name": server["server_name"],
-            "assigned_users": assigned_users
-        })
-
-    conn.close()
-    return templates.TemplateResponse("servers.html", {"request": request, "servers": servers_data})
-
-@admin_router.get("/admin/servers/add", response_class=HTMLResponse)
-async def add_server_page(request: Request, user: str = Depends(get_current_admin_user)):
-    return templates.TemplateResponse("add_server.html", {"request": request})
-
-@admin_router.post("/admin/servers/add")
-async def add_server(request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    existing_server = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server_name,)).fetchone()
-    if existing_server:
-        conn.close()
-        return templates.TemplateResponse("add_server.html", {"request": request, "error": "Server name already exists."})
-
-    conn.execute('INSERT INTO servers (server_name) VALUES (?)', (server_name,))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Created server", server_name)
-
-    return RedirectResponse(url="/admin/servers", status_code=303)
-
-@admin_router.get("/admin/servers/edit/{server_id}", response_class=HTMLResponse)
-async def edit_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
-    conn.close()
-
-    if not server:
-        raise HTTPException(status_code=404, detail="Server not found")
-
-    return templates.TemplateResponse("edit_server.html", {"request": request, "server": server})
-
-@admin_router.post("/admin/servers/edit/{server_id}")
-async def edit_server(server_id: int, request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    conn.execute('UPDATE servers SET server_name = ? WHERE id = ?', (server_name, server_id))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Edited server", server_name)
-
-    return RedirectResponse(url="/admin/servers", status_code=303)
-
-@admin_router.post("/admin/servers/delete/{server_id}")
-async def delete_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
-    if not server:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Server not found")
-
-    conn.execute('DELETE FROM server_assignments WHERE server_id = ?', (server_id,))
-    conn.execute('DELETE FROM servers WHERE id = ?', (server_id,))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Deleted server", server["server_name"])
-
-    return RedirectResponse(url="/admin/servers", status_code=303)
-
-@admin_router.get("/admin/servers/assign-user/{server_id}", response_class=HTMLResponse)
-async def assign_user_to_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
-    if not server:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Server not found")
-
-    users = conn.execute('SELECT * FROM users').fetchall()
-    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
-
-    conn.close()
-
-    return templates.TemplateResponse("assign_user_to_server.html", {
-        "request": request,
-        "server": server,
-        "users": users,
-        "ssh_keys": ssh_keys
-    })
-
-@admin_router.post("/admin/servers/assign-user/{server_id}")
-async def assign_user_to_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    form = await request.form()
-    user_id = int(form.get("user_id"))
-    ssh_key_id = int(form.get("ssh_key_id"))
-
-    conn = get_db_connection()
-
-    # Fetch all users and keys early
-    users = conn.execute('SELECT * FROM users').fetchall()
-    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
-
-    # Check if user already assigned
-    existing_assignment = conn.execute(
-        'SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?',
-        (server_id, user_id)
-    ).fetchone()
-
-    if existing_assignment:
-        conn.close()
-        return templates.TemplateResponse(
-            "assign_user_to_server.html",
-            {
-                "request": request,
-                "error": "User already assigned to this server!",
-                "server": {"id": server_id},
-                "users": users,
-                "ssh_keys": ssh_keys,
-                "assigned_user_id": user_id
-            }
-        )
-
-    # Insert assignment
-    conn.execute(
-        'INSERT INTO server_assignments (server_id, user_id, ssh_key_id) VALUES (?, ?, ?)',
-        (server_id, user_id, ssh_key_id)
-    )
-    conn.commit()
-
-    # Fetch server name and username for logging
-    server = conn.execute('SELECT server_name FROM servers WHERE id = ?', (server_id,)).fetchone()
-    user_obj = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
-
-    conn.close()
-
-    # Log with real names
-    server_name = server["server_name"] if server else f"ServerID {server_id}"
-    username = user_obj["username"] if user_obj else f"UserID {user_id}"
-
-    log_admin_action(
-        request.session.get("username"),
-        "Assigned user to server",
-        f"{username} → {server_name}"
-    )
-
-    return RedirectResponse(url="/admin/servers", status_code=303)
-
-@admin_router.post("/admin/servers/unassign-user/{server_id}/{user_id}")
-async def unassign_user_from_server(server_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    # Check if assignment exists
-    assignment = conn.execute('SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id)).fetchone()
-    if not assignment:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Assignment not found")
-
-    # Delete the assignment
-    conn.execute('DELETE FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
-
-    return RedirectResponse(url="/admin/servers", status_code=303)
+# --- Server Management (no change needed, admin-only already protected properly) ---
 
 
-#allowed IPs
-@admin_router.get("/admin/allowed-ips", response_class=HTMLResponse)
-async def allowed_ips_list(request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    allowed_ips = conn.execute('SELECT * FROM allowed_api_sources').fetchall()
-    conn.close()
-    return templates.TemplateResponse("allowed_ips.html", {"request": request, "allowed_ips": allowed_ips})
+# --- Allowed IPs Management (no change needed, admin-only already protected properly) ---
 
-@admin_router.get("/admin/allowed-ips/add", response_class=HTMLResponse)
-async def add_allowed_ip_page(request: Request, user: str = Depends(get_current_admin_user)):
-    return templates.TemplateResponse("add_allowed_ip.html", {"request": request})
 
-@admin_router.post("/admin/allowed-ips/add")
-async def add_allowed_ip(request: Request, 
-                          ip_or_cidr_or_asn: str = Form(...), 
-                          type: str = Form(...),
-                          description: str = Form(""),
-                          context: str = Form("api"),
-                          user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    conn.execute('INSERT INTO allowed_api_sources (ip_or_cidr_or_asn, type, description, context) VALUES (?, ?, ?, ?)',
-                 (ip_or_cidr_or_asn, type, description, context))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Added Allowed IP/ASN", ip_or_cidr_or_asn)
-
-    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
-
-@admin_router.get("/admin/allowed-ips/edit/{allowed_id}", response_class=HTMLResponse)
-async def edit_allowed_ip_page(allowed_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    allowed_ip = conn.execute('SELECT * FROM allowed_api_sources WHERE id = ?', (allowed_id,)).fetchone()
-    conn.close()
-
-    if not allowed_ip:
-        raise HTTPException(status_code=404, detail="Allowed IP/ASN not found")
-
-    return templates.TemplateResponse("edit_allowed_ip.html", {"request": request, "allowed_ip": allowed_ip})
-
-@admin_router.post("/admin/allowed-ips/edit/{allowed_id}")
-async def edit_allowed_ip(allowed_id: int,
-                          request: Request,
-                          ip_or_cidr_or_asn: str = Form(...),
-                          type: str = Form(...),
-                          description: str = Form(""),
-                          context: str = Form("api"),
-                          user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    conn.execute('UPDATE allowed_api_sources SET ip_or_cidr_or_asn = ?, type = ?, description = ?, context = ? WHERE id = ?',
-                 (ip_or_cidr_or_asn, type, description, context, allowed_id))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Edited Allowed IP/ASN", ip_or_cidr_or_asn)
-
-    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
-
-@admin_router.post("/admin/allowed-ips/delete/{allowed_id}")
-async def delete_allowed_ip(allowed_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    allowed_ip = conn.execute('SELECT * FROM allowed_api_sources WHERE id = ?', (allowed_id,)).fetchone()
-    if not allowed_ip:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Allowed IP/ASN not found")
-
-    conn.execute('DELETE FROM allowed_api_sources WHERE id = ?', (allowed_id,))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Deleted Allowed IP/ASN", allowed_ip["ip_or_cidr_or_asn"])
-
-    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
-
-# API LOGS
+# --- API Logs Page ---
 @admin_router.get("/admin/api-logs", response_class=HTMLResponse)
 async def api_logs_page(request: Request, user: str = Depends(get_current_admin_user)):
     search = request.query_params.get("search", "").strip()

@@ -158,15 +158,15 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     username = request.session.get("username")
     if not username:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    
+
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM users WHERE username = ? AND context = "admin"', (username,)).fetchone()
-    if not admin:
+    user_record = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
+    if not user_record:
         conn.close()
-        raise HTTPException(status_code=400, detail="Admin not found.")
-    
+        raise HTTPException(status_code=400, detail="User not found.")
+
     # ✅ Now use centralized verify_admin_password
-    valid = await verify_admin_password(admin, old_password)
+    valid = await verify_admin_password(user_record, old_password)
     if not valid:
         conn.close()
         return templates.TemplateResponse("change_password.html", {"request": request, "error": "Incorrect old password"})
@@ -180,7 +180,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     success, error = await update_admin_password(username, new_password)
     if not success:
         return templates.TemplateResponse("change_password.html", {"request": request, "error": error})
-    
+
     log_admin_action(username, "Changed password")
     request.session.pop("username", None)
     return RedirectResponse(url="/admin/login", status_code=303)

@@ -2,18 +2,16 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
 from services.ip_filter_service import is_admin_ip_allowed
+from services.security_service import update_admin_password, verify_admin_password, create_user, update_user
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
-from services.security_service import update_admin_password, verify_admin_password
-from services.security_service import create_admin_with_password
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from config import templates
-
-init_db()  # Ensure DB initialized
-
 import os
 from datetime import datetime, timedelta
+
+init_db()  # Ensure DB initialized
 
 admin_router = APIRouter()
 
@@ -29,8 +27,6 @@ async def login_page(request: Request):
         if not is_admin_ip_allowed(client_ip):
             return templates.TemplateResponse("access_denied.html", {"request": request})
     return templates.TemplateResponse("login.html", {"request": request})
-
-from datetime import datetime
 
 @admin_router.post("/admin/login")
 async def login(request: Request, username: str = Form(...), password: str = Form(...)):
@@ -87,8 +83,6 @@ async def dashboard_dbsize():
 
 
 # Dashboard totals endpoint
-from datetime import datetime, timedelta
-
 @admin_router.get("/admin/dashboard-totals")
 async def dashboard_totals(period: str = "1h"):
     conn = get_db_connection()
@@ -187,73 +181,6 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
     request.session.pop("username", None)
     return RedirectResponse(url="/admin/login", status_code=303)
 
-@admin_router.get("/admin/admins", response_class=HTMLResponse)
-async def admins_page(request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    admins = conn.execute('SELECT * FROM users WHERE context = "admin"').fetchall()
-    conn.close()
-    return templates.TemplateResponse("admin_list.html", {"request": request, "admins": admins})
-
-@admin_router.get("/admin/admins/add", response_class=HTMLResponse)
-async def add_admin_page(request: Request, user: str = Depends(get_current_admin_user)):
-    return templates.TemplateResponse("admin_add.html", {"request": request})
-
-@admin_router.post("/admin/admins/add")
-async def add_admin(request: Request, username: str = Form(...), password: str = Form(...), confirm_password: str = Form(...), email: str = Form(...)):
-    if password != confirm_password:
-        return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Passwords do not match", "username": username, "email": email})
-
-    conn = get_db_connection()
-    existing_admin = conn.execute('SELECT * FROM users WHERE username = ? AND context = "admin"', (username,)).fetchone()
-    if existing_admin:
-        conn.close()
-        return templates.TemplateResponse("admin_add.html", {"request": request, "error": "Admin username already exists", "username": username, "email": email})
-
-    # Insert into users table with context = 'admin'
-    encrypted_password = encrypt_password(password)
-    salt = encrypted_password["salt"]
-    password_md5salted = encrypted_password["password"]
-    conn.execute('INSERT INTO users (username, email, password_md5salted, salt, context, enabled, must_change_password, expiration_date, locked, created_at) VALUES (?, ?, ?, ?, "admin", 1, 0, ?, 0, datetime("now"))',
-                 (username, email, password_md5salted, salt, "2099-12-31 23:59:59"))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Created new admin", object_modified=username)
-    return RedirectResponse(url="/admin/admins", status_code=303)
-
-@admin_router.get("/admin/admins/edit/{admin_id}", response_class=HTMLResponse)
-async def edit_admin_page(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
-    conn.close()
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin not found")
-    return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin})
-
-@admin_router.post("/admin/admins/edit/{admin_id}")
-async def edit_admin(admin_id: int, request: Request, email: str = Form(...), password: str = Form(None), confirm_password: str = Form(None), enabled: int = Form(...), force_password_change: int = Form(0)):
-    conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
-    if not admin:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Admin not found")
-
-    if password:
-        if password != confirm_password:
-            conn.close()
-            return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin, "error": "Passwords do not match"})
-
-        success, error = await update_admin_password(admin['username'], password)
-        if not success:
-            conn.close()
-            return templates.TemplateResponse("admin_edit.html", {"request": request, "admin": admin, "error": error})
-
-    conn.execute('UPDATE users SET email = ?, enabled = ?, must_change_password = ? WHERE id = ? AND context = "admin"', (email, enabled, force_password_change, admin_id))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(request.session.get("username"), "Edited admin", object_modified=admin["username"])
-    return RedirectResponse(url="/admin/admins", status_code=303)
 
 
 # settings #
@@ -307,39 +234,6 @@ async def update_settings(
 
     return RedirectResponse(url="/admin/settings?success=1", status_code=303)
 
-# --- DELETE ADMIN (SHOW CONFIRMATION PAGE) ---
-
-@admin_router.get("/admin/admins/delete/{admin_id}", response_class=HTMLResponse)
-async def delete_admin_confirm(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
-    conn.close()
-    if not admin:
-        raise HTTPException(status_code=404, detail="Admin not found")
-    return templates.TemplateResponse("admin_delete_confirm.html", {"request": request, "admin": admin})
-
-# --- DELETE ADMIN (AFTER CONFIRM) ---
-
-@admin_router.post("/admin/admins/delete/{admin_id}")
-async def delete_admin(admin_id: int, request: Request, user: str = Depends(get_current_admin_user)):
-    conn = get_db_connection()
-
-    admin = conn.execute('SELECT * FROM users WHERE id = ? AND context = "admin"', (admin_id,)).fetchone()
-
-    if not admin:
-        conn.close()
-        raise HTTPException(status_code=404, detail="Admin not found")
-
-    conn.execute('DELETE FROM users WHERE id = ?', (admin_id,))
-    conn.commit()
-    conn.close()
-
-    log_admin_action(
-        request.session.get("username"),
-        "Deleted admin",
-        admin["username"]
-    )
-    return RedirectResponse(url="/admin/admins", status_code=303)
 
 # --- ADMIN LOGS ---
 @admin_router.get("/admin/logs", response_class=HTMLResponse)
@@ -451,70 +345,35 @@ async def add_ssh_user(
     context: str = Form(...),
     user: str = Depends(get_current_admin_user)
 ):
-    conn = get_db_connection()
-
-    existing_user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
-    if existing_user:
-        conn.close()
-        return templates.TemplateResponse(
-            "add_ssh_user.html",
-            {
-                "request": request,
-                "error": "Username already exists.",
-                "prefill_username": username,
-                "prefill_email": email,
-                "prefill_expiration_date": expiration_date,
-                "prefill_locked": locked
-            }
-        )
-
-    existing_email = conn.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone()
-    if existing_email:
-        conn.close()
-        return templates.TemplateResponse(
-            "add_ssh_user.html",
-            {
-                "request": request,
-                "error": "Email already exists.",
-                "prefill_username": username,
-                "prefill_email": email,
-                "prefill_expiration_date": expiration_date,
-                "prefill_locked": locked
-            }
-        )
-
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
 
-    is_locked = 1 if locked else 0
+    if context == "admin" and not password:
+        return templates.TemplateResponse(
+            "add_ssh_user.html",
+            {
+                "request": request,
+                "error": "Password is required for Admin users.",
+                "prefill_username": username,
+                "prefill_email": email,
+                "prefill_expiration_date": expiration_date,
+                "prefill_locked": locked
+            }
+        )
 
-    # Prepare fields
-    password_md5salted = None
-    salt = None
-    if context == "admin":
-        if not password:
-            conn.close()
-            return templates.TemplateResponse(
-                "add_ssh_user.html",
-                {
-                    "request": request,
-                    "error": "Password is required for Admin users.",
-                    "prefill_username": username,
-                    "prefill_email": email,
-                    "prefill_expiration_date": expiration_date,
-                    "prefill_locked": locked
-                }
-            )
-        encrypted = encrypt_password(password)
-        salt = encrypted["salt"]
-        password_md5salted = encrypted["password"]
-
-    conn.execute(
-        'INSERT INTO users (username, email, expiration_date, locked, context, password_md5salted, salt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        (username, email, expiration_date, is_locked, context, password_md5salted, salt)
-    )
-    conn.commit()
-    conn.close()
+    success, error = await create_user(username, password or "", email, context)
+    if not success:
+        return templates.TemplateResponse(
+            "add_ssh_user.html",
+            {
+                "request": request,
+                "error": error,
+                "prefill_username": username,
+                "prefill_email": email,
+                "prefill_expiration_date": expiration_date,
+                "prefill_locked": locked
+            }
+        )
 
     log_admin_action(request.session.get("username"), "Added user", username)
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
@@ -545,56 +404,20 @@ async def edit_ssh_user(
     context: str = Form(...),
     user: str = Depends(get_current_admin_user)
 ):
-    conn = get_db_connection()
-
-    # Check duplicate username (excluding self)
-    existing_user = conn.execute('SELECT * FROM users WHERE username = ? AND id != ?', (username, user_id)).fetchone()
-    if existing_user:
-        conn.close()
-        return templates.TemplateResponse("edit_ssh_user.html", {
-            "request": request,
-            "error": "Username already exists.",
-            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
-        })
-
-    # Check duplicate email (excluding self)
-    existing_email = conn.execute('SELECT * FROM users WHERE email = ? AND id != ?', (email, user_id)).fetchone()
-    if existing_email:
-        conn.close()
-        return templates.TemplateResponse("edit_ssh_user.html", {
-            "request": request,
-            "error": "Email already exists.",
-            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
-        })
-
     if never_expires:
         expiration_date = "2099-12-31 23:59:59"
 
     is_locked = 1 if locked else 0
 
-    if password:
-        # Correct: generate salt and encrypt password
-        from services.security_service import generate_salt
-        salt = generate_salt(8)
-        encrypted_password = encrypt_password(password, salt)
-        conn.execute('''
-            UPDATE users
-            SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?, password_md5salted = ?, salt = ?
-            WHERE id = ?
-        ''', (username, email, expiration_date, is_locked, context, encrypted_password, salt, user_id))
-    else:
-        # No password change
-        conn.execute('''
-            UPDATE users
-            SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?
-            WHERE id = ?
-        ''', (username, email, expiration_date, is_locked, context, user_id))
-
-    conn.commit()
-    conn.close()
+    success, error = await update_user(user_id, username, email, expiration_date, is_locked, context, password)
+    if not success:
+        return templates.TemplateResponse("edit_ssh_user.html", {
+            "request": request,
+            "error": error,
+            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
+        })
 
     log_admin_action(request.session.get("username"), "Edited SSH user", username)
-
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 # -- Delete SSH User --
 @admin_router.post("/admin/ssh-users/delete/{user_id}")

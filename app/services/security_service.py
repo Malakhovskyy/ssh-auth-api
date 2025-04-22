@@ -1,60 +1,65 @@
 import secrets
 from models.models import get_db_connection, encrypt_password, get_setting
-from services.password_validator import is_password_complex  # we'll move password checks here
+from services.password_validator import is_password_complex
 
+# New: Salt generator
+def generate_salt(length: int = 8) -> str:
+    return secrets.token_hex(length)
+
+# Update admin password
 async def update_admin_password(username: str, new_password: str, check_complexity: bool = True) -> (bool, str):
-    # If needed, check password complexity
     if check_complexity and get_setting('enforce_password_complexity') == '1':
         valid, message = is_password_complex(new_password, username)
         if not valid:
             return False, message
 
-    # Generate new salt and password hash
-    salt = secrets.token_hex(8)
+    salt = generate_salt(8)
     password_hash = encrypt_password(new_password, salt)
 
-    # Update in database
     conn = get_db_connection()
-    result = conn.execute('UPDATE admins SET password_md5salted = ?, salt = ?, must_change_password = 0 WHERE admin_username = ?', (password_hash, salt, username))
+    result = conn.execute(
+        'UPDATE users SET password_md5salted = ?, salt = ?, must_change_password = 0 WHERE username = ?',
+        (password_hash, salt, username)
+    )
     conn.commit()
     conn.close()
 
-    # Check if update affected exactly one row
     if result.rowcount == 0:
         return False, "Failed to update password."
 
     return True, ""
 
-async def create_admin_with_password(username: str, password: str, email: str) -> (bool, str):
+
+# Generalized user creation function
+async def create_user(username: str, password: str, email: str, context: str = 'ssh_user') -> (bool, str):
     conn = get_db_connection()
 
-    # Check if username already exists
-    existing_username = conn.execute('SELECT * FROM admins WHERE admin_username = ?', (username,)).fetchone()
+    # Check duplicates
+    existing_username = conn.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
     if existing_username:
         conn.close()
         return False, "Username already exists."
 
-    # Check if email already exists
-    existing_email = conn.execute('SELECT * FROM admins WHERE email = ?', (email,)).fetchone()
+    existing_email = conn.execute('SELECT * FROM users WHERE email = ?', (email,)).fetchone()
     if existing_email:
         conn.close()
         return False, "Email already exists."
 
-    # Check password complexity if setting enabled
-    if get_setting('enforce_password_complexity') == '1':
+    # Validate password complexity if needed (only for admins)
+    if context == 'admin' and get_setting('enforce_password_complexity') == '1':
         valid, message = is_password_complex(password, username)
         if not valid:
             conn.close()
             return False, message
 
-    salt = secrets.token_hex(8)
+    salt = generate_salt(8)
     password_hash = encrypt_password(password, salt)
 
     try:
         conn.execute('''
-            INSERT INTO admins (admin_username, email, password_md5salted, salt, must_change_password, enabled)
-            VALUES (?, ?, ?, ?, 1, 1)
-        ''', (username, email, password_hash, salt))
+            INSERT INTO users (username, email, password_md5salted, salt, must_change_password, enabled, context, expiration_date, locked, created_at)
+            VALUES (?, ?, ?, ?, 1, 1, ?, '2099-12-31 23:59:59', 0, datetime('now'))
+        ''', (username, email, password_hash, salt, context))
         conn.commit()
         conn.close()
         return True, ""
@@ -63,7 +68,41 @@ async def create_admin_with_password(username: str, password: str, email: str) -
         return False, str(e)
 
 
+# Generalized user update function
+async def update_user(user_id: int, username: str, email: str, expiration_date: str, locked: int, context: str, password: str = None) -> (bool, str):
+    conn = get_db_connection()
 
+    # Check duplicates
+    existing_username = conn.execute('SELECT id FROM users WHERE username = ? AND id != ?', (username, user_id)).fetchone()
+    if existing_username:
+        conn.close()
+        return False, "Username already exists."
+
+    existing_email = conn.execute('SELECT id FROM users WHERE email = ? AND id != ?', (email, user_id)).fetchone()
+    if existing_email:
+        conn.close()
+        return False, "Email already exists."
+
+    if password:
+        salt = generate_salt(8)
+        password_hash = encrypt_password(password, salt)
+        conn.execute('''
+            UPDATE users
+            SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?, password_md5salted = ?, salt = ?
+            WHERE id = ?
+        ''', (username, email, expiration_date, locked, context, password_hash, salt, user_id))
+    else:
+        conn.execute('''
+            UPDATE users
+            SET username = ?, email = ?, expiration_date = ?, locked = ?, context = ?
+            WHERE id = ?
+        ''', (username, email, expiration_date, locked, context, user_id))
+
+    conn.commit()
+    conn.close()
+    return True, ""
+
+# Verify password for admin users
 async def verify_admin_password(admin_row, plain_password: str) -> bool:
     expected_hash = encrypt_password(plain_password, admin_row['salt'])
-    return expected_hash == admin_row['password_md5salted']
+    return expected_hash == admin_row['password_md5salted'] 

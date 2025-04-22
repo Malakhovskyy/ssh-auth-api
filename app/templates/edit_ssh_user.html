@@ -59,29 +59,40 @@
 <link rel="stylesheet" href="/static/css/flatpickr.min.css">
 
 <script>
-// Flatpickr calendar + clock
-flatpickr("#expiration_date", {
-    enableTime: true,
-    dateFormat: "Y-m-d H:i:S",
-});
-
-// Auto-disable expiration date if Never Expires is checked
-document.getElementById('never_expires').addEventListener('change', function() {
+document.addEventListener('DOMContentLoaded', function() {
     const expirationInput = document.getElementById('expiration_date');
-    if (this.checked) {
-        expirationInput.value = "2099-12-31 23:59:59";
-        expirationInput.disabled = true;
-    } else {
-        expirationInput.disabled = false;
-    }
-});
+    const neverExpiresCheckbox = document.getElementById('never_expires');
 
-// If page loads and Never Expires is already checked
-window.addEventListener('DOMContentLoaded', function() {
-    const expirationInput = document.getElementById('expiration_date');
-    if (document.getElementById('never_expires').checked) {
-        expirationInput.disabled = true;
+    let flatpickrInstance = flatpickr(expirationInput, {
+        enableTime: true,
+        dateFormat: "Y-m-d H:i:S",
+    });
+
+    function updateExpirationField() {
+        if (neverExpiresCheckbox.checked) {
+            expirationInput.value = "2099-12-31 23:59:59";
+            expirationInput.disabled = true;
+            expirationInput.style.backgroundColor = "#f0f0f0"; // grey background
+            if (flatpickrInstance) {
+                flatpickrInstance.destroy();
+                flatpickrInstance = null;
+            }
+        } else {
+            expirationInput.disabled = false;
+            expirationInput.style.backgroundColor = "white"; // normal background
+            if (!flatpickrInstance) {
+                flatpickrInstance = flatpickr(expirationInput, {
+                    enableTime: true,
+                    dateFormat: "Y-m-d H:i:S",
+                });
+            }
+        }
     }
+
+    // Initialize based on current checkbox state
+    updateExpirationField();
+
+    neverExpiresCheckbox.addEventListener('change', updateExpirationField);
 });
 </script>
 

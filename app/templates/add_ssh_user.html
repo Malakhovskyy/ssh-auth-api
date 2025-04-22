@@ -65,34 +65,41 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Flatpickr calendar + clock
-    flatpickr("#expiration_date", {
+    const expirationInput = document.getElementById('expiration_date');
+    const neverExpiresCheckbox = document.getElementById('never_expires');
+
+    let flatpickrInstance = flatpickr(expirationInput, {
         enableTime: true,
         dateFormat: "Y-m-d H:i:S",
     });
 
-    const expirationInput = document.getElementById('expiration_date');
-    const neverExpiresCheckbox = document.getElementById('never_expires');
-
-    // Function to update expiration field state
     function updateExpirationField() {
         if (neverExpiresCheckbox.checked) {
             expirationInput.value = "2099-12-31 23:59:59";
             expirationInput.disabled = true;
             expirationInput.style.backgroundColor = "#f0f0f0"; // grey background
+            if (flatpickrInstance) {
+                flatpickrInstance.destroy();
+                flatpickrInstance = null;
+            }
         } else {
-            const today = new Date();
-            const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
             expirationInput.disabled = false;
             expirationInput.style.backgroundColor = "white"; // normal background
+            if (!flatpickrInstance) {
+                flatpickrInstance = flatpickr(expirationInput, {
+                    enableTime: true,
+                    dateFormat: "Y-m-d H:i:S",
+                });
+            }
+            const today = new Date();
+            const nextYear = new Date(today.setFullYear(today.getFullYear() + 1));
             expirationInput.value = nextYear.toISOString().slice(0, 19).replace('T', ' ');
         }
     }
 
-    // Run on page load
+    // Initialize based on current checkbox state
     updateExpirationField();
 
-    // Update when checkbox changes
     neverExpiresCheckbox.addEventListener('change', updateExpirationField);
 });
 </script>

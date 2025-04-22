@@ -6,21 +6,21 @@ from models.models import get_setting
 
 def authenticate_admin(username: str, password: str, ip_address: str):
     conn = get_db_connection()
-    admin = conn.execute('SELECT * FROM users WHERE username = ? AND context = ?', (username, 'admin')).fetchone()
+    user = conn.execute('SELECT * FROM users WHERE username = ? AND context IN ("admin", "ssh_user")', (username,)).fetchone()
     conn.close()
 
-    if not admin:
+    if not user:
         log_login_attempt(username, ip_address, success=0)
         return None
 
-    if not admin['enabled']:
+    if not user['enabled']:
         log_login_attempt(username, ip_address, success=0)
         return None
 
-    hashed = encrypt_password(password, admin['salt'])
-    if hashed == admin['password_md5salted']:
+    hashed = encrypt_password(password, user['salt'])
+    if hashed == user['password_md5salted']:
         log_login_attempt(username, ip_address, success=1)
-        return admin
+        return user
     else:
         log_login_attempt(username, ip_address, success=0)
         return None
@@ -42,5 +42,7 @@ def get_current_admin_user(request: Request):
     return request.session["username"]
 
 def logout_admin(request: Request):
-    request.session.pop("admin_user", None)
+    request.session.pop("username", None)
+    request.session.pop("context", None)
+    request.session.pop("user_id", None)
     return RedirectResponse(url="/admin/login")

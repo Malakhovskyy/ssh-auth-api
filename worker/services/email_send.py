@@ -1,6 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
-from worker.models.models import get_setting, log_email
+from models.models import get_setting, log_email
 from worker.main import celery_app
 from services.encryption_service import decrypt_sensitive_value
 

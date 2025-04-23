@@ -812,13 +812,23 @@ async def edit_server_page(server_id: int, request: Request, user: str = Depends
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    return templates.TemplateResponse("edit_server.html", {"request": request, "server": server})
+    # Only show last 8 digits of token in template
+    return templates.TemplateResponse("edit_server.html", {
+        "request": request,
+        "server": server,
+        "token_preview": server["auth_token"][-8:] if server["auth_token"] else "N/A"
+    })
 
 @admin_router.post("/admin/servers/edit/{server_id}")
 async def edit_server(server_id: int, request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    conn.execute('UPDATE servers SET server_name = ? WHERE id = ?', (server_name, server_id))
+    form = await request.form()
+    if "regenerate_token" in form:
+        new_token = secrets.token_hex(32)
+        conn.execute('UPDATE servers SET server_name = ?, auth_token = ? WHERE id = ?', (server_name, new_token, server_id))
+    else:
+        conn.execute('UPDATE servers SET server_name = ? WHERE id = ?', (server_name, server_id))
     conn.commit()
     conn.close()
 

@@ -232,9 +232,29 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     if not success:
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
 
+    conn = get_db_connection()
+    row = conn.execute('''
+        SELECT u.email
+        FROM reset_tokens rt
+        JOIN users u ON rt.admin_id = u.id
+        WHERE rt.token = ? AND u.context = 'admin'
+    ''', (token,)).fetchone()
+    conn.close()
+    if row:
+        email = row["email"]
+
     # Delete the reset token after successful password update
     delete_reset_token(token)
+    #write lof
     log_admin_action(username, "Password reset completed")
+    #send email
+        # Render the email body using the HTML template
+
+    subject = "SSH Key Manager - Password Changed"
+    email_body = templates.get_template("email/password_changed_email.html").render({
+        "year": datetime.utcnow().year
+    })
+    send_email(email, subject, email_body)
 
     # Add a message to be displayed to the user after successful password reset
     return RedirectResponse(url="/admin/login?message=Password+updated+successfully", status_code=303)

@@ -106,3 +106,12 @@ async def update_user(user_id: int, username: str, email: str, expiration_date: 
 async def verify_admin_password(admin_row, plain_password: str) -> bool:
     expected_hash = encrypt_password(plain_password, admin_row['salt'])
     return expected_hash == admin_row['password_md5salted'] 
+
+# Role helpers
+def is_admin(request) -> bool:
+    """Check if the current user is an admin."""
+    return request.session.get('context') == 'admin'
+
+def is_ssh_user(request) -> bool:
+    """Check if the current user is an SSH user."""
+    return request.session.get('context') == 'ssh_user'    

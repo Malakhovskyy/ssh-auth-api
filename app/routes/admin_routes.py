@@ -198,7 +198,13 @@ async def forgot_password(request: Request, email: str = Form(...)):
     send_password_reset_email(email, reset_link)
     log_admin_action(user["username"], "Password reset requested", email)
 
-    return templates.TemplateResponse("forgot_password.html", {"request": request, "message": "Password reset link sent to your email."})
+    return RedirectResponse(url="/admin/forgot-password-sent", status_code=303)
+
+
+# Confirmation page after sending password reset link
+@admin_router.get("/admin/forgot-password-sent", response_class=HTMLResponse)
+async def forgot_password_sent_page(request: Request):
+    return templates.TemplateResponse("forgot_password_sent.html", {"request": request})
 
 @admin_router.get("/admin/reset-password/{token}", response_class=HTMLResponse)
 async def reset_password_page(token: str, request: Request):

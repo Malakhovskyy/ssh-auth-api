@@ -609,10 +609,267 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
 
 
 # --- Server Management (no change needed, admin-only already protected properly) ---
+#Server Manager key assign
+@admin_router.get("/admin/servers", response_class=HTMLResponse)
+async def servers_list(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
 
+    servers = conn.execute('SELECT * FROM servers').fetchall()
+    servers_data = []
+
+    for server in servers:
+        assigned_users = conn.execute('''
+            SELECT users.id as user_id, users.username, ssh_keys.key_name
+            FROM server_assignments
+            JOIN users ON server_assignments.user_id = users.id
+            JOIN ssh_keys ON server_assignments.ssh_key_id = ssh_keys.id
+            WHERE server_assignments.server_id = ?
+        ''', (server["id"],)).fetchall()
+
+        servers_data.append({
+            "id": server["id"],
+            "server_name": server["server_name"],
+            "assigned_users": assigned_users
+        })
+
+    conn.close()
+    return templates.TemplateResponse("servers.html", {"request": request, "servers": servers_data})
+
+@admin_router.get("/admin/servers/add", response_class=HTMLResponse)
+async def add_server_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_server.html", {"request": request})
+
+@admin_router.post("/admin/servers/add")
+async def add_server(request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    existing_server = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server_name,)).fetchone()
+    if existing_server:
+        conn.close()
+        return templates.TemplateResponse("add_server.html", {"request": request, "error": "Server name already exists."})
+
+    conn.execute('INSERT INTO servers (server_name) VALUES (?)', (server_name,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Created server", server_name)
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.get("/admin/servers/edit/{server_id}", response_class=HTMLResponse)
+async def edit_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    conn.close()
+
+    if not server:
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    return templates.TemplateResponse("edit_server.html", {"request": request, "server": server})
+
+@admin_router.post("/admin/servers/edit/{server_id}")
+async def edit_server(server_id: int, request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    conn.execute('UPDATE servers SET server_name = ? WHERE id = ?', (server_name, server_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Edited server", server_name)
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.post("/admin/servers/delete/{server_id}")
+async def delete_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    if not server:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    conn.execute('DELETE FROM server_assignments WHERE server_id = ?', (server_id,))
+    conn.execute('DELETE FROM servers WHERE id = ?', (server_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Deleted server", server["server_name"])
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.get("/admin/servers/assign-user/{server_id}", response_class=HTMLResponse)
+async def assign_user_to_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    if not server:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Server not found")
+
+    users = conn.execute('SELECT * FROM users').fetchall()
+    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+
+    conn.close()
+
+    return templates.TemplateResponse("assign_user_to_server.html", {
+        "request": request,
+        "server": server,
+        "users": users,
+        "ssh_keys": ssh_keys
+    })
+
+@admin_router.post("/admin/servers/assign-user/{server_id}")
+async def assign_user_to_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    form = await request.form()
+    user_id = int(form.get("user_id"))
+    ssh_key_id = int(form.get("ssh_key_id"))
+
+    conn = get_db_connection()
+
+    # Fetch all users and keys early
+    users = conn.execute('SELECT * FROM users').fetchall()
+    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+
+    # Check if user already assigned
+    existing_assignment = conn.execute(
+        'SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?',
+        (server_id, user_id)
+    ).fetchone()
+
+    if existing_assignment:
+        conn.close()
+        return templates.TemplateResponse(
+            "assign_user_to_server.html",
+            {
+                "request": request,
+                "error": "User already assigned to this server!",
+                "server": {"id": server_id},
+                "users": users,
+                "ssh_keys": ssh_keys,
+                "assigned_user_id": user_id
+            }
+        )
+
+    # Insert assignment
+    conn.execute(
+        'INSERT INTO server_assignments (server_id, user_id, ssh_key_id) VALUES (?, ?, ?)',
+        (server_id, user_id, ssh_key_id)
+    )
+    conn.commit()
+
+    # Fetch server name and username for logging
+    server = conn.execute('SELECT server_name FROM servers WHERE id = ?', (server_id,)).fetchone()
+    user_obj = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    conn.close()
+
+    # Log with real names
+    server_name = server["server_name"] if server else f"ServerID {server_id}"
+    username = user_obj["username"] if user_obj else f"UserID {user_id}"
+
+    log_admin_action(
+        request.session.get("username"),
+        "Assigned user to server",
+        f"{username} → {server_name}"
+    )
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
+
+@admin_router.post("/admin/servers/unassign-user/{server_id}/{user_id}")
+async def unassign_user_from_server(server_id: int, user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    # Check if assignment exists
+    assignment = conn.execute('SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id)).fetchone()
+    if not assignment:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Assignment not found")
+
+    # Delete the assignment
+    conn.execute('DELETE FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
+
+    return RedirectResponse(url="/admin/servers", status_code=303)
 
 # --- Allowed IPs Management (no change needed, admin-only already protected properly) ---
+#allowed IPs
 
+@admin_router.get("/admin/allowed-ips", response_class=HTMLResponse)
+async def allowed_ips_list(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    allowed_ips = conn.execute('SELECT * FROM allowed_api_sources').fetchall()
+    conn.close()
+    return templates.TemplateResponse("allowed_ips.html", {"request": request, "allowed_ips": allowed_ips})
+
+@admin_router.get("/admin/allowed-ips/add", response_class=HTMLResponse)
+async def add_allowed_ip_page(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_allowed_ip.html", {"request": request})
+
+@admin_router.post("/admin/allowed-ips/add")
+async def add_allowed_ip(request: Request, 
+                          ip_or_cidr_or_asn: str = Form(...), 
+                          type: str = Form(...),
+                          description: str = Form(""),
+                          context: str = Form("api"),
+                          user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    conn.execute('INSERT INTO allowed_api_sources (ip_or_cidr_or_asn, type, description, context) VALUES (?, ?, ?, ?)',
+                 (ip_or_cidr_or_asn, type, description, context))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Added Allowed IP/ASN", ip_or_cidr_or_asn)
+
+    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
+
+@admin_router.get("/admin/allowed-ips/edit/{allowed_id}", response_class=HTMLResponse)
+async def edit_allowed_ip_page(allowed_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    allowed_ip = conn.execute('SELECT * FROM allowed_api_sources WHERE id = ?', (allowed_id,)).fetchone()
+    conn.close()
+
+    if not allowed_ip:
+        raise HTTPException(status_code=404, detail="Allowed IP/ASN not found")
+
+    return templates.TemplateResponse("edit_allowed_ip.html", {"request": request, "allowed_ip": allowed_ip})
+
+@admin_router.post("/admin/allowed-ips/edit/{allowed_id}")
+async def edit_allowed_ip(allowed_id: int,
+                          request: Request,
+                          ip_or_cidr_or_asn: str = Form(...),
+                          type: str = Form(...),
+                          description: str = Form(""),
+                          context: str = Form("api"),
+                          user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    conn.execute('UPDATE allowed_api_sources SET ip_or_cidr_or_asn = ?, type = ?, description = ?, context = ? WHERE id = ?',
+                 (ip_or_cidr_or_asn, type, description, context, allowed_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Edited Allowed IP/ASN", ip_or_cidr_or_asn)
+
+    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
+
+@admin_router.post("/admin/allowed-ips/delete/{allowed_id}")
+async def delete_allowed_ip(allowed_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    allowed_ip = conn.execute('SELECT * FROM allowed_api_sources WHERE id = ?', (allowed_id,)).fetchone()
+    if not allowed_ip:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Allowed IP/ASN not found")
+
+    conn.execute('DELETE FROM allowed_api_sources WHERE id = ?', (allowed_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Deleted Allowed IP/ASN", allowed_ip["ip_or_cidr_or_asn"])
+
+    return RedirectResponse(url="/admin/allowed-ips", status_code=303)
 
 # --- API Logs Page ---
 @admin_router.get("/admin/api-logs", response_class=HTMLResponse)

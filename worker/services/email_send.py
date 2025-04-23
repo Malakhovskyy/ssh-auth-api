@@ -30,7 +30,8 @@ def send_email_task(subject: str, body: str, to_email: str):
         msg["To"] = to_email
 
         with smtplib.SMTP(smtp_host, smtp_port) as server:
-            if smtp_use_tls:
+            if smtp_port == 587 or smtp_use_tls:
+                print("[DEBUG] Issuing STARTTLS...")
                 server.starttls()
             if smtp_user and smtp_pass and server.has_extn('auth'):
                 server.login(smtp_user, smtp_pass)

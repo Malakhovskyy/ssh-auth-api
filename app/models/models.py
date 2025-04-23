@@ -194,7 +194,17 @@ def init_db():
             FOREIGN KEY (ssh_key_id) REFERENCES ssh_keys(id)
         )
     ''')
-
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS email_queue (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            subject TEXT,
+            body TEXT,
+            to_email TEXT,
+            status TEXT DEFAULT 'queued',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            error_message TEXT
+        )
+    ''')
 
 
     # ====== SMART COLUMN ADDITIONS HERE ======

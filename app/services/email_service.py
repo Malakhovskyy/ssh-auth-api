@@ -1,6 +1,6 @@
 import smtplib
 from email.mime.text import MIMEText
-from models.models import get_setting, log_email
+from models.models import get_setting, log_email, queue_email, get_db_connection
 from services.encryption_service import decrypt_sensitive_value
 
 from models.models import log_email
@@ -41,9 +41,19 @@ def send_backup_email(backup_path):
     admin_email = get_setting('smtp_from') or get_setting('smtp_user')
     send_email(subject, f"Backup is available at {backup_path}", admin_email)
 
+def queue_email(subject, body, to_email):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO email_queue (subject, body, to_email, status, created_at)
+        VALUES (?, ?, ?, 'queued', datetime('now'))
+    ''', (subject, body, to_email))
+    conn.commit()
+    conn.close()
+
 def send_password_reset_email(admin_email, token):
     domain = get_setting('domain')  # Domain should also be stored in settings!
     reset_link = f"https://{domain}/admin/reset-password/{token}"
     subject = "SSH Key Manager - Password Reset"
     body = f"Reset your password here: {reset_link}"
-    send_email(subject, body, admin_email)
+    queue_email(subject, body, admin_email)

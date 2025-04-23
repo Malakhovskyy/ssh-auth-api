@@ -242,6 +242,11 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     conn.close()
     if row:
         email = row["email"]
+        subject = "SSH Key Manager - Password Changed"
+        email_body = templates.get_template("email/password_changed_email.html").render({
+        "year": datetime.utcnow().year
+        })
+        send_email(email, subject, email_body)
 
     # Delete the reset token after successful password update
     delete_reset_token(token)
@@ -250,11 +255,7 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     #send email
         # Render the email body using the HTML template
 
-    subject = "SSH Key Manager - Password Changed"
-    email_body = templates.get_template("email/password_changed_email.html").render({
-        "year": datetime.utcnow().year
-    })
-    send_email(email, subject, email_body)
+
 
     # Add a message to be displayed to the user after successful password reset
     return RedirectResponse(url="/admin/login?message=Password+updated+successfully", status_code=303)

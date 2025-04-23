@@ -22,7 +22,7 @@
         </tr>
       </thead>
       <tbody>
-        {% for log in logs %}
+        {% for log in logs[-10:] %}
         <tr>
           <td>{{ log["id"] }}</td>
           <td>{{ log["to_email"] }}</td>

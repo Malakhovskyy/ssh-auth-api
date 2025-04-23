@@ -19,7 +19,7 @@ def send_backup_email(backup_path):
 
 def send_email(subject, body, admin_email):
     domain = get_setting('domain')  # Domain should also be stored in settings!
-#    reset_link = f"https://{domain}/admin/reset-password/{token}"
-    subject = "SSH Key Manager - Password Reset"
- #   body = f"Reset your password here: {reset_link}"
+#   reset_link = f"https://{domain}/admin/reset-password/{token}"
+#   subject = "SSH Key Manager - Password Reset"
+#   body = f"Reset your password here: {reset_link}"
     queue_email(subject, body, admin_email)

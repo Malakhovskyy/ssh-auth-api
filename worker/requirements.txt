@@ -1,5 +1,14 @@
-celery[rabbitmq]
-python-dotenv
+fastapi
+uvicorn
+python-multipart
+jinja2
+sqlalchemy
 passlib
+python-dotenv
+aiofiles
+email-validator
+apscheduler
+httpx
 itsdangerous
 cryptography
+celery[rabbitmq]

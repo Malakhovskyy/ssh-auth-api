@@ -11,3 +11,4 @@ apscheduler
 httpx
 itsdangerous
 cryptography
+celery[rabbitmq]

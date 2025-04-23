@@ -1,5 +1,5 @@
 import secrets
-from models.models import get_db_connection, encrypt_password, get_setting
+from models.models import get_db_connection, get_setting, encrypt_password
 from services.password_validator import is_password_complex
 
 # New: Salt generator

@@ -1,9 +1,8 @@
 from fastapi import Request, HTTPException
 from starlette.responses import RedirectResponse
 from models.models import get_db_connection, log_login_attempt
-from services.security_service import encrypt_password
 from datetime import datetime, timedelta
-from models.models import get_setting
+from models.models import get_setting, encrypt_password
 
 def authenticate_admin(username: str, password: str, ip_address: str):
     conn = get_db_connection()

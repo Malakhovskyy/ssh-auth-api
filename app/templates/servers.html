@@ -17,6 +17,7 @@
             <th>Server Name</th>
             <th>Assigned Users</th>
             <th>Actions</th>
+            <th>Token</th>
         </tr>
     </thead>
     <tbody>
@@ -46,8 +47,10 @@
                     <form method="post" action="/admin/servers/delete/{{ server['id'] }}" style="margin: 0;" onsubmit="return confirmDelete();">
                         <button type="submit" class="btn btn-sm btn-danger">🗑️ Delete</button>
                     </form>
+                    <button class="btn btn-sm btn-secondary" onclick="copyToClipboard('{{ server['auth_token'] }}')">📋 Copy Token</button>
                 </div>
             </td>
+            <td></td>
         </tr>
         {% endfor %}
     </tbody>
@@ -71,6 +74,14 @@ document.getElementById('searchInput').addEventListener('keyup', function() {
         row.style.display = text.includes(filter) ? '' : 'none';
     });
 });
+
+function copyToClipboard(token) {
+    navigator.clipboard.writeText(token).then(() => {
+        alert("Token copied to clipboard.");
+    }).catch(err => {
+        alert("Failed to copy token: " + err);
+    });
+}
 </script>
 
       </div>

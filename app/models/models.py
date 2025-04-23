@@ -87,7 +87,8 @@ def init_db():
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS servers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            server_name TEXT UNIQUE NOT NULL
+            server_name TEXT UNIQUE NOT NULL,
+            auth_token TEXT
         )
     ''')
 

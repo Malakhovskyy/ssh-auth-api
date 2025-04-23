@@ -8,6 +8,7 @@ from services.email_service import send_email
 from services.token_service import generate_reset_token, verify_reset_token, delete_reset_token
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from config import templates
+import secrets
 import os
 from datetime import datetime, timedelta
 
@@ -758,7 +759,7 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
 async def servers_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    servers = conn.execute('SELECT * FROM servers').fetchall()
+    servers = conn.execute('SELECT id, server_name, auth_token FROM servers').fetchall()
     servers_data = []
 
     for server in servers:
@@ -773,6 +774,7 @@ async def servers_list(request: Request, user: str = Depends(get_current_admin_u
         servers_data.append({
             "id": server["id"],
             "server_name": server["server_name"],
+            "auth_token": server["auth_token"],
             "assigned_users": assigned_users
         })
 
@@ -792,7 +794,8 @@ async def add_server(request: Request, server_name: str = Form(...), user: str =
         conn.close()
         return templates.TemplateResponse("add_server.html", {"request": request, "error": "Server name already exists."})
 
-    conn.execute('INSERT INTO servers (server_name) VALUES (?)', (server_name,))
+    auth_token = secrets.token_hex(32)
+    conn.execute('INSERT INTO servers (server_name, auth_token) VALUES (?, ?)', (server_name, auth_token))
     conn.commit()
     conn.close()
 

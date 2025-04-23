@@ -1,0 +1,5 @@
+celery[rabbitmq]
+python-dotenv
+passlib
+itsdangerous
+cryptography

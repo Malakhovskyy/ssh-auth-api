@@ -61,9 +61,11 @@ services:
     restart: unless-stopped
 
   celery-worker:
-    build: ./app
+    build: ./worker
     container_name: celery-worker
-    command: celery -A celery_worker.celery_app worker --loglevel=info
+    volumes:
+      - ./data:/app/data
+    command: celery -A main.celery_app worker --loglevel=info
     depends_on:
       - ssh-key-manager
       - rabbitmq

@@ -5,7 +5,7 @@ from celery_config import celery_app
 from services.encryption_service import decrypt_sensitive_value
 
 @celery_app.task(name="services.email_send.send_email_task")
-def send_email_task(subject: str, body: str, to_email: str):
+def send_email_task(email: str, subject: str, email_body: str):
     # Load SMTP settings from database
     smtp_server = get_setting('smtp_host')
     smtp_port = int(get_setting('smtp_port') or 587)
@@ -15,10 +15,10 @@ def send_email_task(subject: str, body: str, to_email: str):
 
     smtp_pass = decrypt_sensitive_value(smtp_pass_encrypted)
 
-    msg = MIMEText(body, "html")
+    msg = MIMEText(email_body, "html")
     msg["Subject"] = subject
     msg["From"] = smtp_from
-    msg["To"] = to_email
+    msg["To"] = email
 
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:

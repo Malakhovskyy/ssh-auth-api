@@ -323,6 +323,107 @@ async def add_ssh_user(
     log_admin_action(request.session.get("username"), "Added user", username)
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
+# -- Edit SSH User (GET page) --
+@admin_router.get("/admin/ssh-users/edit/{user_id}", response_class=HTMLResponse)
+async def edit_ssh_user_page(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    conn.close()
+
+    if not user_data:
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    return templates.TemplateResponse("edit_ssh_user.html", {"request": request, "user_data": user_data})
+
+# -- Edit SSH User (POST save) --
+@admin_router.post("/admin/ssh-users/edit/{user_id}")
+async def edit_ssh_user(
+    user_id: int,
+    request: Request,
+    username: str = Form(...),
+    email: str = Form(...),
+    expiration_date: str = Form(...),
+    never_expires: str = Form(None),
+    locked: str = Form(None),
+    password: str = Form(None),
+    context: str = Form(...),
+    user: str = Depends(get_current_admin_user)
+):
+    if never_expires:
+        expiration_date = "2099-12-31 23:59:59"
+
+    is_locked = 1 if locked else 0
+
+    success, error = await update_user(user_id, username, email, expiration_date, is_locked, context, password)
+    if not success:
+        return templates.TemplateResponse("edit_ssh_user.html", {
+            "request": request,
+            "error": error,
+            "user_data": {"id": user_id, "username": username, "email": email, "expiration_date": expiration_date, "locked": locked, "context": context}
+        })
+
+    log_admin_action(request.session.get("username"), "Edited SSH user", username)
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+# -- Delete SSH User --
+@admin_router.post("/admin/ssh-users/delete/{user_id}")
+async def delete_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    user_data = conn.execute('SELECT * FROM users WHERE id = ?', (user_id,)).fetchone()
+    if not user_data:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    conn.execute('DELETE FROM users WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Deleted SSH user", user_data["username"])
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+# -- Lock SSH User --
+@admin_router.post("/admin/ssh-users/lock/{user_id}")
+async def lock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    row = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    username = row["username"]  # ✅ Save username into variable
+
+    conn.execute('UPDATE users SET locked = 1 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+    # ✅ Now safe to log
+    log_admin_action(request.session.get("username"), "Locked SSH user", username)
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
+
+# -- Unlock SSH User --
+@admin_router.post("/admin/ssh-users/unlock/{user_id}")
+async def unlock_ssh_user(user_id: int, request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+
+    row = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    if not row:
+        conn.close()
+        raise HTTPException(status_code=404, detail="SSH user not found")
+
+    username = row["username"]
+
+    conn.execute('UPDATE users SET locked = 0 WHERE id = ?', (user_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(request.session.get("username"), "Unlocked SSH user", username)
+
+    return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
 # --- SSH KEYS MANAGEMENT ---
 

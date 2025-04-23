@@ -232,19 +232,18 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     if not success:
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
 
-    # Get user's email from the token
+    # Get user's email from the username
     conn = get_db_connection()
     row = conn.execute('''
-        SELECT u.email
-        FROM reset_tokens rt
-        JOIN users u ON rt.admin_id = u.id
-        WHERE rt.token = ? AND u.context = 'admin'
-    ''', (token,)).fetchone()
+        SELECT email
+        FROM users
+        WHERE username = ?
+    ''', (username,)).fetchone()
     conn.close()
-    print(f"[DEBUG] row before if from reset_tokens lookup: {row}")
+    print(f"[DEBUG] row before if from users lookup: {row}")
     # Send confirmation email if possible
     if row:
-        print(f"[DEBUG] row from reset_tokens lookup: {row}")
+        print(f"[DEBUG] row from users lookup: {row}")
         email = row["email"]
         subject = "SSH Key Manager - Password Changed"
         email_body = templates.get_template("email/password_changed_email.html").render({

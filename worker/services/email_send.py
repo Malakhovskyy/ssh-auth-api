@@ -33,6 +33,7 @@ def send_email_task(subject: str, body: str, to_email: str):
             if smtp_port == 587 or smtp_use_tls:
                 print("[DEBUG] Issuing STARTTLS...")
                 server.starttls()
+                print(f"[DEBUG] Server ESMTP features: {server.esmtp_features}")
             if smtp_user and smtp_pass and server.has_extn('auth'):
                 server.login(smtp_user, smtp_pass)
             else:

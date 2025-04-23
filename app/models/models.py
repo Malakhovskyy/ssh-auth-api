@@ -39,9 +39,6 @@ def log_admin_action(username, action, object_modified=None):
     conn.commit()
     conn.close()
 
-def encrypt_password(password: str, salt: str) -> str:
-    return hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
-
 def get_setting(key: str) -> str:
     conn = get_db_connection()
     cursor = conn.execute('SELECT value FROM settings WHERE key = ?', (key,))

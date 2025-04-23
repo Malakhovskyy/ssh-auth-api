@@ -1,6 +1,4 @@
 from celery import Celery
-from services import email_send  # Still needed to register task
-from celery_config import celery_app  # New import location
 
 celery_app = Celery(
     "ssh_auth_tasks",

@@ -9,3 +9,8 @@ celery_app = Celery(
 celery_app.conf.task_routes = {
     "services.email_send.*": {"queue": "default"}
 }
+
+celery_app.conf.update(
+    task_acks_late=True,
+    worker_prefetch_multiplier=1,
+)

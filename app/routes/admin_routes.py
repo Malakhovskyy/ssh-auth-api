@@ -254,6 +254,7 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
         email_body = templates.get_template("email/password_changed_email.html").render({
             "year": datetime.utcnow().year
         })
+        print(f"[DEBUG] Sending password changed email to {email}")
         send_email(email, subject, email_body)
 
     # Add a message to be displayed to the user after successful password reset

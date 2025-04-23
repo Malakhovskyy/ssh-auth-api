@@ -15,7 +15,7 @@ def send_email_task(subject: str, body: str, to_email: str):
 
     smtp_pass = decrypt_sensitive_value(smtp_pass_encrypted)
 
-    msg = MIMEText(body)
+    msg = MIMEText(body, "html")
     msg["Subject"] = subject
     msg["From"] = smtp_from
     msg["To"] = to_email

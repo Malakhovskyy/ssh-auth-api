@@ -241,7 +241,7 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
         WHERE rt.token = ? AND u.context = 'admin'
     ''', (token,)).fetchone()
     conn.close()
-
+    print(f"[DEBUG] row before if from reset_tokens lookup: {row}")
     # Send confirmation email if possible
     if row:
         print(f"[DEBUG] row from reset_tokens lookup: {row}")

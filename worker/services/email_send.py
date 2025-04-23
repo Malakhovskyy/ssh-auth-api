@@ -22,8 +22,8 @@ def send_email_task(subject: str, body: str, to_email: str):
         msg["To"] = to_email
 
         with smtplib.SMTP(smtp_host, smtp_port) as server:
-            if smtp_use_tls:
-                server.starttls()
+#            if smtp_use_tls:
+#                server.starttls()
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_from, [to_email], msg.as_string())
             log_email(to_email, subject, "Success")

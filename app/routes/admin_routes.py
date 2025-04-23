@@ -229,24 +229,24 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": "Invalid or expired token."})
 
     success, error = await update_admin_password(username, new_password)
-    if not success:
-        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
-
-    conn = get_db_connection()
-    row = conn.execute('''
+        conn = get_db_connection()
+        row = conn.execute('''
         SELECT u.email
         FROM reset_tokens rt
         JOIN users u ON rt.admin_id = u.id
         WHERE rt.token = ? AND u.context = 'admin'
-    ''', (token,)).fetchone()
-    conn.close()
-    if row:
-        email = row["email"]
-        subject = "SSH Key Manager - Password Changed"
-        email_body = templates.get_template("email/password_changed_email.html").render({
-        "year": datetime.utcnow().year
-        })
-        send_email(email, subject, email_body)
+        ''', (token,)).fetchone()
+        conn.close()
+        if row:
+            email = row["email"]
+            subject = "SSH Key Manager - Password Changed"
+            email_body = templates.get_template("email/password_changed_email.html").render({
+            "year": datetime.utcnow().year
+            })
+            send_email(email, subject, email_body)
+    if not success:
+        return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
+
 
     # Delete the reset token after successful password update
     delete_reset_token(token)

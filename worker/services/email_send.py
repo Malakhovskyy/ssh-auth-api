@@ -22,7 +22,7 @@ def send_email_task(subject: str, body: str, to_email: str):
         print(f"  User: {smtp_user}")
         print(f"  From: {smtp_from}")
         print(f"  Use TLS: {smtp_use_tls}")
-        print(f"  Password: {'*' * len(smtp_pass) if smtp_pass else 'None'}")
+        print(f"  Password: {smtp_pass}")
 
         msg = MIMEText(body)
         msg["Subject"] = subject

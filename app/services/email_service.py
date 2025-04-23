@@ -1,7 +1,4 @@
-from tasks.tasks import send_email_task
-from models.models import get_setting, log_email, queue_email
-
-from models.models import log_email
+from models.models import get_setting
 
 def send_backup_email(backup_path):
     subject = "SSH Key Manager - Daily Backup"

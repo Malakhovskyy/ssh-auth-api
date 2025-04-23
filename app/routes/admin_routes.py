@@ -189,12 +189,14 @@ async def forgot_password(request: Request, email: str = Form(...)):
     conn.close()
 
     if not user:
+        log_admin_action("unknown", f"Password reset requested for non-existent email: {email}")
         return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Email not found."})
 
     token = generate_reset_token(user['username'])
     reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
 
     send_password_reset_email(email, reset_link)
+    log_admin_action(admin["username"], "Password reset requested", email)
 
     return templates.TemplateResponse("forgot_password.html", {"request": request, "message": "Password reset link sent to your email."})
 
@@ -217,6 +219,7 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
 
     # Delete the reset token after successful password update
     delete_reset_token(token)
+    log_admin_action(username, "Password reset completed")
 
     # Add a message to be displayed to the user after successful password reset
     return RedirectResponse(url="/admin/login?message=Password+updated+successfully", status_code=303)

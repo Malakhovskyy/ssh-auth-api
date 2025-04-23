@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # Config
-API_URL="https://your-api-domain/ssh-keys"    # <-- Change to your real API endpoint
-SERVER_NAME="$(hostname -f)"                  # Get full server hostname
-USERNAME="$1"                                 # SSH passes username as $1
+API_URL="https://domain.com/ssh-keys"    # <-- Change to your real API endpoint
+SERVER_NAME="host_name"                                    # Hostname or server record name
+AUTH_TOKEN="toke_for_server"           # Replace with actual token
+USERNAME="$1"                                           # SSH passes username as $1
 
 LOG_FILE="/var/log/ssh_api/ssh_api_query.log"
 
@@ -18,9 +19,10 @@ if [ -z "$USERNAME" ]; then
     exit 1
 fi
 
-# Call API
-RESPONSE=$(curl -s --max-time 3 "${API_URL}/${SERVER_NAME}/${USERNAME}")
+# Call API with Authorization header
+RESPONSE=$(curl -s --max-time 3 -H "Authorization: ${AUTH_TOKEN}" "${API_URL}/${SERVER_NAME}/${USERNAME}")
 
+# Check for valid SSH key in response
 if echo "$RESPONSE" | grep -q "ssh-"; then
     echo "$RESPONSE"
     log "SUCCESS"

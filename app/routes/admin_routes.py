@@ -2,8 +2,8 @@ from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import HTMLResponse, RedirectResponse
 from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
 from services.ip_filter_service import is_admin_ip_allowed
-from services.security_service import update_admin_password, verify_admin_password, create_user, update_user, is_admin, is_ssh_user
-from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
+from services.security_service import update_admin_password, verify_admin_password, create_user, update_user, is_admin, is_ssh_user, encrypt_password
+from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting
 from services.email_service import send_password_reset_email
 from services.token_service import generate_reset_token, verify_reset_token
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value

@@ -1,6 +1,7 @@
 from fastapi import Request, HTTPException
 from starlette.responses import RedirectResponse
-from models.models import get_db_connection, log_login_attempt, encrypt_password
+from models.models import get_db_connection, log_login_attempt
+from services.security_service import encrypt_password
 from datetime import datetime, timedelta
 from models.models import get_setting
 

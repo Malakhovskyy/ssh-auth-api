@@ -3,6 +3,7 @@ import os
 import hashlib
 import random
 import string
+from services.security_service import encrypt_password
 
 DB_DIR = os.getenv("DB_DIR", "/app/data")
 DB_PATH = os.path.join(DB_DIR, "sshkeys.db")
@@ -39,7 +40,7 @@ def log_admin_action(username, action, object_modified=None):
     conn.close()
 
 def encrypt_password(password: str, salt: str) -> str:
-    return hashlib.md5((salt + password).encode('utf-8')).hexdigest()
+    return hashlib.sha256((salt + password).encode('utf-8')).hexdigest()
 
 def get_setting(key: str) -> str:
     conn = get_db_connection()

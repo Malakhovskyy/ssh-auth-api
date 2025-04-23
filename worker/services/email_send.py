@@ -24,12 +24,12 @@ def send_email_task(email: str, subject: str, email_body: str):
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
             server.login(smtp_user, smtp_pass)
-            server.sendmail(smtp_from, [to_email], msg.as_string())
+            server.sendmail(smtp_from, [email], msg.as_string())
 
         # ✅ Log success
-        log_email(to_email, subject, "Success")
+        log_email(email, subject, "Success")
 
     except Exception as e:
         # ✅ Log failure
-        log_email(to_email, subject, "Failed", str(e))
+        log_email(email, subject, "Failed", str(e))
         raise

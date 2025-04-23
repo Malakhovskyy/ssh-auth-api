@@ -4,8 +4,8 @@ from models.models import get_setting, log_email
 from celery_config import celery_app
 from services.encryption_service import decrypt_sensitive_value
 
-@celery_app.task(name="services.email_send.send_email_task")
-def send_email_task(email: str, subject: str, email_body: str):
+@celery_app.task(name="services.email_send.send_email_task", bind=True, default_retry_delay=60)
+def send_email_task(self, email: str, subject: str, email_body: str):
     # Load SMTP settings from database
     smtp_server = get_setting('smtp_host')
     smtp_port = int(get_setting('smtp_port') or 587)
@@ -32,4 +32,4 @@ def send_email_task(email: str, subject: str, email_body: str):
     except Exception as e:
         # ✅ Log failure
         log_email(email, subject, "Failed", str(e))
-        raise
+        raise self.retry(exc=e)

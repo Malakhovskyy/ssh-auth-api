@@ -65,7 +65,7 @@ services:
     container_name: celery-worker
     volumes:
       - ./data:/app/data
-    command: celery -A main.celery_app worker --loglevel=info --task-acks-late --prefetch-multiplier=5
+    command: celery -A main.celery_app worker --loglevel=info
     depends_on:
       - ssh-key-manager
       - rabbitmq

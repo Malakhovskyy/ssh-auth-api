@@ -1,7 +1,7 @@
 import smtplib
 from email.mime.text import MIMEText
 from models.models import get_setting, log_email
-#from main import celery_app
+from main import celery_app
 from services.encryption_service import decrypt_sensitive_value
 
 @celery_app.task(name="services.email_send.send_email_task")

@@ -196,7 +196,7 @@ async def forgot_password(request: Request, email: str = Form(...)):
     reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
 
     send_password_reset_email(email, reset_link)
-    log_admin_action(admin["username"], "Password reset requested", email)
+    log_admin_action(user["username"], "Password reset requested", email)
 
     return templates.TemplateResponse("forgot_password.html", {"request": request, "message": "Password reset link sent to your email."})
 

@@ -1,4 +1,4 @@
-from app.services.email_service import send_email
+from ..services.email_service import send_email
 from app.celery_worker import celery_app
 
 @celery_app.task

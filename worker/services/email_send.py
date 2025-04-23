@@ -37,7 +37,7 @@ def send_email_task(subject: str, body: str, to_email: str):
             if smtp_user and smtp_pass and server.has_extn('auth'):
                 server.login(smtp_user, smtp_pass)
             else:
-                print("[DEBUG] Skipping SMTP AUTH – either user/pass missing or server does not support AUTH.")
+                raise RuntimeError("SMTP AUTH required but not available or credentials missing.")
             server.sendmail(smtp_from, [to_email], msg.as_string())
             log_email(to_email, subject, "Success")
 

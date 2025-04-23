@@ -30,7 +30,7 @@
                         <div style="display: flex; align-items: center; gap: 5px;">
                             <span>{{ user["username"] }} ({{ user["key_name"] }})</span>
                     <form method="post" action="/admin/servers/unassign-user/{{ server['id'] }}/{{ user['user_id'] }}" style="display:inline;" onsubmit="return confirmUnassign();">
-                                <button type="submit" class="btn btn-sm btn-danger">❌</button>
+                                <button type="submit" class="btn btn-delete">✕</button>
                             </form>
                         </div>
                     {% endfor %}

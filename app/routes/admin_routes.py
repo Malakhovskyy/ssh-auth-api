@@ -4,7 +4,7 @@ from auth.auth import authenticate_admin, get_current_admin_user, logout_admin
 from services.ip_filter_service import is_admin_ip_allowed
 from services.security_service import update_admin_password, verify_admin_password, create_user, update_user, is_admin, is_ssh_user
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
-from services.email_service import send_password_reset_email
+from services.email_service import send_email
 from services.token_service import generate_reset_token, verify_reset_token, delete_reset_token
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from config import templates
@@ -196,13 +196,14 @@ async def forgot_password(request: Request, email: str = Form(...)):
     domainname = get_setting('domain')
     token = generate_reset_token(user['username'])
     reset_link = f"https://{domainname}/admin/reset-password/{token}"
-
+    subject = "SSH Key Manager - Password Reset"
+    
     # Render the email body using the HTML template
     email_body = templates.get_template("email/password_reset_email.html").render({
         "reset_link": reset_link,
         "year": datetime.utcnow().year
     })
-    send_password_reset_email(email, email_body)
+    send_email(email, subject, email_body)
     log_admin_action(user["username"], "Password reset requested", email)
 
     return RedirectResponse(url="/admin/forgot-password-sent", status_code=303)

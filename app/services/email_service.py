@@ -1,3 +1,4 @@
+from app.tasks import send_email_task
 import smtplib
 from email.mime.text import MIMEText
 from models.models import get_setting, log_email, queue_email, get_db_connection
@@ -42,14 +43,7 @@ def send_backup_email(backup_path):
     send_email(subject, f"Backup is available at {backup_path}", admin_email)
 
 def queue_email(subject, body, to_email):
-    conn = get_db_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO email_queue (subject, body, to_email, status, created_at)
-        VALUES (?, ?, ?, 'queued', datetime('now'))
-    ''', (subject, body, to_email))
-    conn.commit()
-    conn.close()
+    send_email_task.delay(subject, body, to_email)
 
 def send_password_reset_email(admin_email, token):
     domain = get_setting('domain')  # Domain should also be stored in settings!

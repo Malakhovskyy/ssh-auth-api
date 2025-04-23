@@ -5,7 +5,7 @@ from services.ip_filter_service import is_admin_ip_allowed
 from services.security_service import update_admin_password, verify_admin_password, create_user, update_user, is_admin, is_ssh_user
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
 from services.email_service import send_password_reset_email
-from services.token_service import generate_reset_token, verify_reset_token
+from services.token_service import generate_reset_token, verify_reset_token, delete_reset_token
 from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
 from config import templates
 import os
@@ -215,7 +215,11 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     if not success:
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
 
-    return RedirectResponse(url="/admin/login", status_code=303)
+    # Delete the reset token after successful password update
+    delete_reset_token(token)
+
+    # Add a message to be displayed to the user after successful password reset
+    return RedirectResponse(url="/admin/login?message=Password+updated+successfully", status_code=303)
 
 
 # Settings

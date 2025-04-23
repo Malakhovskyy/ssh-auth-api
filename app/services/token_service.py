@@ -26,3 +26,9 @@ def verify_reset_token(token):
             return token_entry["admin_id"]
 
     return None
+
+def delete_reset_token(token: str):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM reset_tokens WHERE token = ?', (token,))
+    conn.commit()
+    conn.close()

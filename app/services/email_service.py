@@ -1,4 +1,4 @@
-from app.tasks import send_email_task
+from tasks.tasks import send_email_task
 import smtplib
 from email.mime.text import MIMEText
 from models.models import get_setting, log_email, queue_email, get_db_connection

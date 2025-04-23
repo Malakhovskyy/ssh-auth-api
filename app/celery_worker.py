@@ -1,4 +1,5 @@
 from celery import Celery
+from tasks.tasks import send_email_task
 
 celery_app = Celery(
     "ssh_auth_tasks",

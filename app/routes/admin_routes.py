@@ -182,6 +182,7 @@ async def change_password(request: Request, old_password: str = Form(...), new_p
 async def forgot_password_page(request: Request):
     return templates.TemplateResponse("forgot_password.html", {"request": request})
 
+from fastapi.templating import Jinja2Templates
 @admin_router.post("/admin/forgot-password")
 async def forgot_password(request: Request, email: str = Form(...)):
     conn = get_db_connection()
@@ -195,7 +196,12 @@ async def forgot_password(request: Request, email: str = Form(...)):
     token = generate_reset_token(user['username'])
     reset_link = f"{request.url.scheme}://{request.url.hostname}/admin/reset-password/{token}"
 
-    send_password_reset_email(email, reset_link)
+    # Render the email body using the HTML template
+    email_body = templates_jinja.get_template("email/password_reset_email.html").render({
+        "reset_link": reset_link,
+        "year": datetime.utcnow().year
+    })
+    send_password_reset_email(email, email_body)
     log_admin_action(user["username"], "Password reset requested", email)
 
     return RedirectResponse(url="/admin/forgot-password-sent", status_code=303)

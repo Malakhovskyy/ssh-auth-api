@@ -18,6 +18,8 @@ async def get_ssh_key(server: str, username: str, request: Request):
     else:
         client_ip = request.client.host
 
+    auth_header = request.headers.get("Authorization")
+
     # Check if the client's IP address is allowed to access the API
     if not is_ip_allowed(client_ip):
         log_api_access(server, username, client_ip, "BLOCKED", "IP not allowed")
@@ -31,6 +33,17 @@ async def get_ssh_key(server: str, username: str, request: Request):
 
     # Query the database to find the server by server name
     server_rec = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server,)).fetchone()
+
+    if not auth_header:
+        conn.close()
+        log_api_access(server, username, client_ip, "NO TOKEN", "Missing Authorization header")
+        raise HTTPException(status_code=401, detail="Missing Authorization token")
+
+    server_token = conn.execute('SELECT auth_token FROM servers WHERE server_name = ?', (server,)).fetchone()
+    if not server_token or server_token["auth_token"] != auth_header.strip():
+        conn.close()
+        log_api_access(server, username, client_ip, "INVALID TOKEN", "Invalid Authorization token")
+        raise HTTPException(status_code=401, detail="Invalid Authorization token")
 
     # Check if the user or server was not found in the database
     if not user or not server_rec:

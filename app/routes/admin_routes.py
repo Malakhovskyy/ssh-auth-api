@@ -193,8 +193,9 @@ async def forgot_password(request: Request, email: str = Form(...)):
         log_admin_action("unknown", f"Password reset requested for non-existent email: {email}")
         return templates.TemplateResponse("forgot_password.html", {"request": request, "error": "Email not found."})
 
+    domainname = get_setting('domain')
     token = generate_reset_token(user['username'])
-    reset_link = f"https://{request.url.hostname}/admin/reset-password/{token}"
+    reset_link = f"https://{domainname}/admin/reset-password/{token}"
 
     # Render the email body using the HTML template
     email_body = templates_jinja.get_template("email/password_reset_email.html").render({

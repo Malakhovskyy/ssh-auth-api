@@ -1,7 +1,7 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 import shutil
 import os
-from services.email_service import send_backup_email
+from services.email_service import send_email
 
 def create_backup():
     source_db = os.path.abspath("./data/sshkeys.db")

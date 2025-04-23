@@ -16,14 +16,22 @@ def send_email_task(subject: str, body: str, to_email: str):
 
         smtp_pass = decrypt_sensitive_value(smtp_pass_encrypted)
 
+        print(f"[DEBUG] SMTP Config:")
+        print(f"  Host: {smtp_host}")
+        print(f"  Port: {smtp_port}")
+        print(f"  User: {smtp_user}")
+        print(f"  From: {smtp_from}")
+        print(f"  Use TLS: {smtp_use_tls}")
+        print(f"  Password: {'*' * len(smtp_pass) if smtp_pass else 'None'}")
+
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = smtp_from
         msg["To"] = to_email
 
         with smtplib.SMTP(smtp_host, smtp_port) as server:
-#            if smtp_use_tls:
-#                server.starttls()
+            if smtp_use_tls:
+                server.starttls()
             server.login(smtp_user, smtp_pass)
             server.sendmail(smtp_from, [to_email], msg.as_string())
             log_email(to_email, subject, "Success")

@@ -4,7 +4,7 @@ from worker.models.models import get_setting, log_email
 from worker.main import celery_app
 from services.encryption_service import decrypt_sensitive_value
 
-@celery_app.task
+@celery_app.task(name="services.email_send.send_email_task")
 def send_email_task(subject: str, body: str, to_email: str):
     try:
         smtp_host = get_setting("smtp_host")

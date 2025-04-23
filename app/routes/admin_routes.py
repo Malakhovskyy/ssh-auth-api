@@ -232,7 +232,6 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
     if not success:
         return templates.TemplateResponse("reset_password.html", {"request": request, "token": token, "error": error})
 
-    
     # Get user's email from the token
     conn = get_db_connection()
     row = conn.execute('''
@@ -242,11 +241,6 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
         WHERE rt.token = ? AND u.context = 'admin'
     ''', (token,)).fetchone()
     conn.close()
-
-    # Delete the reset token after successful password update
-    delete_reset_token(token)
-    #write log
-    log_admin_action(username, "Password reset completed")
 
     # Send confirmation email if possible
     if row:
@@ -258,6 +252,11 @@ async def reset_password(token: str, request: Request, new_password: str = Form(
         })
         print(f"[DEBUG] Sending password changed email to {email}")
         send_email(email, subject, email_body)
+
+    # Delete the reset token after successful password update
+    delete_reset_token(token)
+    # Write log
+    log_admin_action(username, "Password reset completed")
 
     # Add a message to be displayed to the user after successful password reset
     return RedirectResponse(url="/admin/login?message=Password+updated+successfully", status_code=303)

@@ -53,7 +53,8 @@ async def login(request: Request, username: str = Form(...), password: str = For
     request.session["user_id"] = user["id"]        # Store user id
     if user["must_change_password"]:
         return RedirectResponse(url="/admin/change-password", status_code=303)
-    return RedirectResponse(url="/admin/dashboard", status_code=303)
+    redirect_url = "/admin/ssh-keys" if user["context"] == "ssh_user" else "/admin/dashboard"
+    return RedirectResponse(url=redirect_url, status_code=303)
 
 @admin_router.get("/admin/logout")
 async def logout(request: Request):

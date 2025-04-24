@@ -12,6 +12,8 @@ import secrets
 import os
 from datetime import datetime, timedelta
 
+from services.provisioning_service import trigger_provisioning_task
+
 init_db()
 
 admin_router = APIRouter()
@@ -979,6 +981,9 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
         (server_id, user_id, ssh_key_id)
     )
     conn.commit()
+
+    # Trigger background provisioning task
+    trigger_provisioning_task(user_id, server_id)
 
     # Fetch server name and username for logging
     server = conn.execute('SELECT server_name FROM servers WHERE id = ?', (server_id,)).fetchone()

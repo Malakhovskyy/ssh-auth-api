@@ -237,6 +237,7 @@ def init_db():
             user_id INTEGER NOT NULL,
             status TEXT NOT NULL DEFAULT 'pending',
             type TEXT NOT NULL DEFAULT 'create',
+            generated_password TEXT,
             FOREIGN KEY (server_id) REFERENCES servers(id),
             FOREIGN KEY (user_id) REFERENCES users(id)
         )

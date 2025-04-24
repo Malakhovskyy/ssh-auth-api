@@ -13,6 +13,8 @@ def provision_user_task(self, task_id: int):
         conn = get_db_connection()
 
         task = conn.execute("SELECT * FROM provisioning_tasks WHERE id = ?", (task_id,)).fetchone()
+        decrypted_password = decrypt_sensitive_value(task["generated_password"]) if task["generated_password"] else None
+
         if not task:
             return
 
@@ -34,7 +36,8 @@ def provision_user_task(self, task_id: int):
             "server_ssh_port": server["server_ssh_port"],
             "system_username": server["system_username"],
             "system_ssh_key": decrypt_sensitive_value(ssh_key["key_data"]),
-            "ssh_key_password": decrypt_sensitive_value(ssh_key["key_password"]) if ssh_key["key_password"] else None
+            "ssh_key_password": decrypt_sensitive_value(ssh_key["key_password"]) if ssh_key["key_password"] else None,
+            "user_password": decrypted_password
         }
 
         headers = {

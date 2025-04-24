@@ -24,6 +24,7 @@
           <td>{{ key["created_at"] }}</td>
           <td>{{ key["comment"] or "—" }}</td>
           <td class="d-flex gap-2">
+            <a href="/admin/system-ssh-keys/edit/{{ key['id'] }}" class="btn btn-secondary btn-sm">Edit</a>
             <a href="/admin/system-ssh-keys/rotate/{{ key['id'] }}" class="btn btn-warning btn-sm">Rotate</a>
             <form method="post" action="/admin/system-ssh-keys/delete/{{ key['id'] }}" onsubmit="return confirm('Are you sure you want to delete this key?')">
               <button type="submit" class="btn btn-danger btn-sm">Delete</button>

@@ -979,6 +979,26 @@ async def assign_user_to_server(server_id: int, request: Request, user: str = De
     users = conn.execute('SELECT * FROM users').fetchall()
     ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
 
+    # Validate that the selected SSH key is actually assigned to the user
+    key_check = conn.execute('''
+        SELECT 1 FROM assignments
+        WHERE user_id = ? AND ssh_key_id = ?
+    ''', (user_id, ssh_key_id)).fetchone()
+
+    if not key_check:
+        conn.close()
+        return templates.TemplateResponse(
+            "assign_user_to_server.html",
+            {
+                "request": request,
+                "error": "Selected SSH key is not assigned to the selected user.",
+                "server": {"id": server_id},
+                "users": users,
+                "ssh_keys": ssh_keys,
+                "assigned_user_id": user_id
+            }
+        )
+
     # Check if user already assigned
     existing_assignment = conn.execute(
         'SELECT id FROM server_assignments WHERE server_id = ? AND user_id = ?',

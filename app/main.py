@@ -5,6 +5,7 @@ from config import templates, static_files
 from starlette.middleware.sessions import SessionMiddleware
 import os
 from dotenv import load_dotenv
+from models.models import init_db
 
 # Add small wait before full startup
 print("[DEBUG] Waiting 2 seconds for DB mount...")
@@ -17,6 +18,7 @@ from services.backup_service import schedule_daily_backup
 
 
 load_dotenv()
+init_db()
 
 app = FastAPI()
 

@@ -1057,6 +1057,8 @@ async def add_allowed_ip(request: Request,
                           description: str = Form(""),
                           context: str = Form("api"),
                           user: str = Depends(get_current_admin_user)):
+    if type not in ("ip", "cidr", "asn"):
+        raise HTTPException(status_code=400, detail="Invalid type value. Must be 'ip', 'cidr', or 'asn'.")
     conn = get_db_connection()
     conn.execute('INSERT INTO allowed_api_sources (ip_or_cidr_or_asn, type, description, context) VALUES (?, ?, ?, ?)',
                  (ip_or_cidr_or_asn, type, description, context))
@@ -1086,6 +1088,8 @@ async def edit_allowed_ip(allowed_id: int,
                           description: str = Form(""),
                           context: str = Form("api"),
                           user: str = Depends(get_current_admin_user)):
+    if type not in ("ip", "cidr", "asn"):
+        raise HTTPException(status_code=400, detail="Invalid type value. Must be 'ip', 'cidr', or 'asn'.")
     conn = get_db_connection()
     conn.execute('UPDATE allowed_api_sources SET ip_or_cidr_or_asn = ?, type = ?, description = ?, context = ? WHERE id = ?',
                  (ip_or_cidr_or_asn, type, description, context, allowed_id))

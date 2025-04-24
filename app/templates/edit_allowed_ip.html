@@ -16,9 +16,9 @@
             <div class="mb-3">
                 <label>Type:</label>
                 <select name="type" class="form-control" required>
-                    <option value="IP" {% if allowed_ip['type'] == 'IP' %}selected{% endif %}>IP</option>
-                    <option value="CIDR" {% if allowed_ip['type'] == 'CIDR' %}selected{% endif %}>CIDR</option>
-                    <option value="ASN" {% if allowed_ip['type'] == 'ASN' %}selected{% endif %}>ASN</option>
+                    <option value="ip" {% if allowed_ip['type'] == 'ip' %}selected{% endif %}>IP</option>
+                    <option value="cidr" {% if allowed_ip['type'] == 'cidr' %}selected{% endif %}>CIDR</option>
+                    <option value="asn" {% if allowed_ip['type'] == 'asn' %}selected{% endif %}>ASN</option>
                 </select>
             </div>
 

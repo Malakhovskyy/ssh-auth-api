@@ -88,7 +88,14 @@ def init_db():
         CREATE TABLE IF NOT EXISTS servers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             server_name TEXT UNIQUE NOT NULL,
-            auth_token TEXT
+            server_ip TEXT,
+            server_ssh_port INTEGER DEFAULT 22,
+            system_username TEXT,
+            system_ssh_key_id INTEGER,
+            proxy_id INTEGER,
+            auth_token TEXT,
+            FOREIGN KEY (system_ssh_key_id) REFERENCES ssh_keys(id),
+            FOREIGN KEY (proxy_id) REFERENCES gateway_proxies(id)
         )
     ''')
 
@@ -190,11 +197,15 @@ def init_db():
             server_id INTEGER NOT NULL,
             user_id INTEGER NOT NULL,
             ssh_key_id INTEGER NOT NULL,
+            provisioning_task_id INTEGER,
             FOREIGN KEY (server_id) REFERENCES servers(id),
             FOREIGN KEY (user_id) REFERENCES users(id),
-            FOREIGN KEY (ssh_key_id) REFERENCES ssh_keys(id)
+            FOREIGN KEY (ssh_key_id) REFERENCES ssh_keys(id),
+            FOREIGN KEY (provisioning_task_id) REFERENCES provisioning_tasks(id)
         )
     ''')
+
+
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS email_queue (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -207,6 +218,39 @@ def init_db():
         )
     ''')
 
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS gateway_proxies (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            proxy_name TEXT NOT NULL,
+            proxy_ip TEXT NOT NULL,
+            proxy_port INTEGER NOT NULL DEFAULT 443,
+            proxy_type TEXT NOT NULL DEFAULT 'active',
+            proxy_auth_token TEXT NOT NULL
+        )
+    ''')
+
+cursor.execute('''
+        CREATE TABLE IF NOT EXISTS provisioning_tasks (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            server_id INTEGER NOT NULL,
+            user_id INTEGER NOT NULL,
+            status TEXT NOT NULL DEFAULT 'pending',
+            type TEXT NOT NULL DEFAULT 'create',
+            FOREIGN KEY (server_id) REFERENCES servers(id),
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        )
+    ''')
+
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS provisioning_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            task_id INTEGER NOT NULL,
+            log_text TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (task_id) REFERENCES provisioning_tasks(id)
+        )
+    ''')
 
     # ====== SMART COLUMN ADDITIONS HERE ======
 

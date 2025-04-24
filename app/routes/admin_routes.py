@@ -1016,9 +1016,16 @@ async def unassign_user_from_server(server_id: int, user_id: int, request: Reque
     # Delete the assignment
     conn.execute('DELETE FROM server_assignments WHERE server_id = ? AND user_id = ?', (server_id, user_id))
     conn.commit()
+
+    server = conn.execute('SELECT server_name FROM servers WHERE id = ?', (server_id,)).fetchone()
+    user_rec = conn.execute('SELECT username FROM users WHERE id = ?', (user_id,)).fetchone()
+
+    server_name = server["server_name"] if server else f"ServerID {server_id}"
+    username = user_rec["username"] if user_rec else f"UserID {user_id}"
+
     conn.close()
 
-    log_admin_action(request.session.get("username"), "Unassigned user from server", f"ServerID {server_id} UserID {user_id}")
+    log_admin_action(request.session.get("username"), "Unassigned user from server", f"{username} ← {server_name}")
 
     return RedirectResponse(url="/admin/servers", status_code=303)
 

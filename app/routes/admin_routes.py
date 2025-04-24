@@ -1307,3 +1307,37 @@ async def update_system_ssh_key(
 
     log_admin_action(user, f"Updated system SSH key #{key_id}: {key_name}")
     return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)
+
+@admin_router.get("/admin/system-ssh-keys/rotate/{key_id}", response_class=HTMLResponse)
+async def rotate_system_ssh_key_form(request: Request, key_id: int, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    key = conn.execute("SELECT id, key_name FROM system_ssh_keys WHERE id = ?", (key_id,)).fetchone()
+    conn.close()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found")
+    return templates.TemplateResponse("rotate_system_ssh_key.html", {"request": request, "key": key})
+
+from services.encryption_service import encrypt_sensitive_value
+
+@admin_router.post("/admin/system-ssh-keys/rotate/{key_id}", response_class=HTMLResponse)
+async def rotate_system_ssh_key(
+    request: Request,
+    key_id: int,
+    key_data: str = Form(...),
+    key_password: str = Form(None),
+    user: str = Depends(get_current_admin_user)
+):
+    encrypted_key = encrypt_sensitive_value(key_data)
+    encrypted_password = encrypt_sensitive_value(key_password) if key_password else None
+
+    conn = get_db_connection()
+    conn.execute('''
+        UPDATE system_ssh_keys
+        SET key_data = ?, key_password = ?
+        WHERE id = ?
+    ''', (encrypted_key, encrypted_password, key_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(user, f"Rotated system SSH key #{key_id}")
+    return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)

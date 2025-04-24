@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Rotate System SSH Key{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Rotate SSH Key: {{ key['key_name'] }}</h3>
+  </div>
+  <div class="card-body">
+    <form method="post" action="/admin/system-ssh-keys/rotate/{{ key['id'] }}">
+      <div class="alert alert-warning">
+        Rotating a system SSH key will immediately replace the stored key and password. This action cannot be undone.
+      </div>
+
+      <div class="mb-3">
+        <label for="key_data" class="form-label">New Private Key</label>
+        <textarea class="form-control" id="key_data" name="key_data" rows="6" required></textarea>
+      </div>
+
+      <div class="mb-3 form-check">
+        <input type="checkbox" class="form-check-input" id="no_password_checkbox" onclick="togglePasswordField()">
+        <label class="form-check-label" for="no_password_checkbox">No password protection</label>
+      </div>
+
+      <div class="mb-3">
+        <label for="key_password" class="form-label">New Key Password (if applicable)</label>
+        <input type="password" class="form-control" id="key_password" name="key_password">
+      </div>
+
+      <button type="submit" class="btn btn-danger">Rotate Key</button>
+      <a href="/admin/system-ssh-keys" class="btn btn-secondary ms-2">Cancel</a>
+    </form>
+  </div>
+</div>
+
+<script>
+  function togglePasswordField() {
+    const checkbox = document.getElementById("no_password_checkbox");
+    const passwordField = document.getElementById("key_password");
+    passwordField.disabled = checkbox.checked;
+    if (checkbox.checked) {
+      passwordField.value = "";
+    }
+  }
+</script>
+{% endblock %}

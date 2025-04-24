@@ -4,7 +4,9 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from datetime import datetime
 from models.models import get_db_connection
 from celery_config import celery_app
-from services.encryption_service import decrypt_sensitive_value
+from services.encryption_service import decrypt_sensitive_value, ENCRYPTION_KEY
+import time
+import os
 
 
 @celery_app.task(bind=True, max_retries=None)
@@ -70,7 +72,7 @@ def provision_user_task(self, task_id: int):
 
 @celery_app.task(bind=True, max_retries=None)
 def monitor_provisioning_status(self, task_id: int):
-    import time
+
 
     conn = get_db_connection()
     task = conn.execute("SELECT * FROM provisioning_tasks WHERE id = ?", (task_id,)).fetchone()
@@ -98,6 +100,13 @@ def monitor_provisioning_status(self, task_id: int):
                     conn.execute("UPDATE provisioning_tasks SET status = ? WHERE id = ?", (status, task_id))
                     conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, log))
                     conn.commit()
+                if status == "done":
+                    try:
+                        api_url = os.getenv("INTERNAL_NOTIFY_URL", "http://ssh-key-manager:8000/admin/internal/user-to-server-assigned")
+                        requests.post(api_url, data={"task_id": task_id, "token": ENCRYPTION_KEY}, timeout=10)
+                        print(f"[DEBUG] Notified manager app about completed task {task_id}")
+                    except Exception as notify_err:
+                        print(f"[WARNING] Failed to notify manager app for task {task_id}: {str(notify_err)}")
                 return
         except Exception:
             pass

@@ -6,13 +6,19 @@ from services.security_service import update_admin_password, verify_admin_passwo
 from models.models import init_db, get_db_connection, log_admin_action, get_setting, set_setting, encrypt_password
 from services.email_service import send_email
 from services.token_service import generate_reset_token, verify_reset_token, delete_reset_token
-from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value
+from services.encryption_service import encrypt_sensitive_value, decrypt_sensitive_value, ENCRYPTION_KEY
 from config import templates
 import secrets
 import os
+import hmac
 from datetime import datetime, timedelta
-
 from services.provisioning_service import trigger_provisioning_task
+
+
+
+
+
+
 
 init_db()
 
@@ -1348,3 +1354,41 @@ async def rotate_system_ssh_key(
 
     log_admin_action(user, f"Rotated system SSH key #{key_id}")
     return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)
+
+#email send
+@admin_router.post("/admin/internal/user-to-server-assigned")
+async def notify_user_password_post(request: Request, task_id: int = Form(...), token: str = Form(...)):
+
+    if not hmac.compare_digest(token, ENCRYPTION_KEY):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db_connection()
+    task = conn.execute("SELECT * FROM provisioning_tasks WHERE id = ?", (task_id,)).fetchone()
+    if not task:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    user = conn.execute("SELECT username, email FROM users WHERE id = ?", (task["user_id"],)).fetchone()
+    server = conn.execute("SELECT server_name FROM servers WHERE id = ?", (task["server_id"],)).fetchone()
+
+    if not user or not server or not task["generated_password"]:
+        conn.close()
+        raise HTTPException(status_code=400, detail="Incomplete data")
+
+    password = decrypt_sensitive_value(task["generated_password"])
+
+    email_body = templates.get_template("email/assignment_notification.html").render({
+        "username": user["username"],
+        "server": server["server_name"],
+        "password": password,
+        "year": datetime.utcnow().year
+    })
+
+    send_email(user["email"], f"Your SSH Access to {server['server_name']}", email_body)
+
+    conn.execute("UPDATE provisioning_tasks SET generated_password = NULL WHERE id = ?", (task_id,))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(user["username"], "SSH credentials sent via email", server["server_name"])
+    return {"status": "ok"}

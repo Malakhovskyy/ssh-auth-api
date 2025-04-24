@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Provisioning Tasks{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title">Provisioning Tasks</h3>
+  </div>
+  <div class="card-body">
+    <table class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th>Task ID</th>
+          <th>Username</th>
+          <th>Server</th>
+          <th>Proxy</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for task in tasks %}
+        <tr>
+          <td>{{ task["id"] }}</td>
+          <td>{{ task["username"] }}</td>
+          <td>{{ task["server_name"] }}</td>
+          <td>{{ task["proxy_name"] or "—" }}</td>
+          <td>
+            <a href="#" data-bs-toggle="modal" data-bs-target="#logModal{{ task['id'] }}">{{ task["status"] }}</a>
+
+            <!-- Modal -->
+            <div class="modal fade" id="logModal{{ task['id'] }}" tabindex="-1" aria-labelledby="logModalLabel{{ task['id'] }}" aria-hidden="true">
+              <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                  <div class="modal-header">
+                    <h5 class="modal-title" id="logModalLabel{{ task['id'] }}">Log for Task #{{ task['id'] }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                  </div>
+                  <div class="modal-body">
+                    <pre style="white-space: pre-wrap;">{{ logs.get(task['id'], []) | join('\n') }}</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

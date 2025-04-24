@@ -1194,3 +1194,31 @@ async def delete_gateway_proxy(request: Request, proxy_id: int):
     conn.commit()
     conn.close()
     return RedirectResponse(url="/admin/gateway-proxies", status_code=303)
+
+#tasks logs
+@admin_router.get("/admin/provision-task", response_class=HTMLResponse)
+async def provision_task_list(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    tasks = conn.execute('''
+        SELECT pt.id, pt.status, u.username, s.server_name, gp.proxy_name
+        FROM provisioning_tasks pt
+        JOIN users u ON pt.user_id = u.id
+        JOIN servers s ON pt.server_id = s.id
+        LEFT JOIN gateway_proxies gp ON s.proxy_id = gp.id
+        ORDER BY pt.id DESC
+        LIMIT 50
+    ''').fetchall()
+    logs = conn.execute('SELECT task_id, log_text FROM provisioning_logs ORDER BY id DESC').fetchall()
+    conn.close()
+
+    logs_dict = {}
+    for log in logs:
+        if log["task_id"] not in logs_dict:
+            logs_dict[log["task_id"]] = []
+        logs_dict[log["task_id"]].append(log["log_text"])
+
+    return templates.TemplateResponse("provision_tasks.html", {
+        "request": request,
+        "tasks": tasks,
+        "logs": logs_dict
+    })

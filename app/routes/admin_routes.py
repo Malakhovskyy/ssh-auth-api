@@ -1213,8 +1213,8 @@ async def delete_gateway_proxy(request: Request, proxy_id: int):
 @admin_router.get("/admin/provision-task", response_class=HTMLResponse)
 async def provision_task_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    tasks = conn.execute('''
-        SELECT pt.id, pt.status, u.username, s.server_name, gp.proxy_name
+    tasks_raw = conn.execute('''
+        SELECT pt.id, pt.status, pt.type, u.username, s.server_name, gp.proxy_name
         FROM provisioning_tasks pt
         JOIN users u ON pt.user_id = u.id
         JOIN servers s ON pt.server_id = s.id
@@ -1230,6 +1230,18 @@ async def provision_task_list(request: Request, user: str = Depends(get_current_
         if log["task_id"] not in logs_dict:
             logs_dict[log["task_id"]] = []
         logs_dict[log["task_id"]].append(log["log_text"])
+
+    # Ensure tasks includes type field for template context
+    tasks = []
+    for t in tasks_raw:
+        tasks.append({
+            "id": t["id"],
+            "status": t["status"],
+            "type": t["type"],
+            "username": t["username"],
+            "server_name": t["server_name"],
+            "proxy_name": t["proxy_name"],
+        })
 
     return templates.TemplateResponse("provision_tasks.html", {
         "request": request,

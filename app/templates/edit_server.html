@@ -12,6 +12,39 @@
                 <label for="serverName" class="form-label">Server Name:</label>
                 <input type="text" id="serverName" name="server_name" class="form-control" required value="{{ server['server_name'] }}">
             </div>
+
+            <div class="mb-3">
+                <label for="server_ip" class="form-label">Server IP:</label>
+                <input type="text" id="server_ip" name="server_ip" class="form-control" required value="{{ server['server_ip'] }}">
+            </div>
+
+            <div class="mb-3">
+                <label for="server_ssh_port" class="form-label">SSH Port:</label>
+                <input type="number" id="server_ssh_port" name="server_ssh_port" class="form-control" value="{{ server['server_ssh_port'] or 22 }}">
+            </div>
+
+            <div class="mb-3">
+                <label for="system_username" class="form-label">System Username:</label>
+                <input type="text" id="system_username" name="system_username" class="form-control" value="{{ server['system_username'] }}">
+            </div>
+
+            <div class="mb-3">
+                <label for="system_ssh_key_id" class="form-label">System SSH Key:</label>
+                <select name="system_ssh_key_id" class="form-control">
+                    {% for key in ssh_keys %}
+                        <option value="{{ key['id'] }}" {% if key['id'] == server['system_ssh_key_id'] %}selected{% endif %}>{{ key['key_name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="proxy_id" class="form-label">Gateway Proxy:</label>
+                <select name="proxy_id" class="form-control">
+                    {% for proxy in gateway_proxies %}
+                        <option value="{{ proxy['id'] }}" {% if proxy['id'] == server['proxy_id'] %}selected{% endif %}>{{ proxy['proxy_name'] }} ({{ proxy['proxy_ip'] }})</option>
+                    {% endfor %}
+                </select>
+            </div>
             <div class="mb-3">
                 <label class="form-label">Token Preview:</label>
                 <input type="text" class="form-control" value="{{ token_preview }}" disabled>

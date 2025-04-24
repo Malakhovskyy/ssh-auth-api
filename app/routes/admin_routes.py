@@ -759,7 +759,16 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
 async def servers_list(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
 
-    servers = conn.execute('SELECT id, server_name, auth_token FROM servers').fetchall()
+    servers = conn.execute('''
+        SELECT servers.id, servers.server_name, servers.server_ip, servers.system_username,
+               servers.server_ssh_port, servers.auth_token,
+               gateway_proxies.proxy_name,
+               ssh_keys.key_name as ssh_key_name
+        FROM servers
+        LEFT JOIN gateway_proxies ON servers.proxy_id = gateway_proxies.id
+        LEFT JOIN ssh_keys ON servers.system_ssh_key_id = ssh_keys.id
+    ''').fetchall()
+
     servers_data = []
 
     for server in servers:
@@ -774,7 +783,12 @@ async def servers_list(request: Request, user: str = Depends(get_current_admin_u
         servers_data.append({
             "id": server["id"],
             "server_name": server["server_name"],
+            "server_ip": server["server_ip"],
+            "system_username": server["system_username"],
+            "server_ssh_port": server["server_ssh_port"],
             "auth_token": server["auth_token"],
+            "proxy_name": server["proxy_name"],
+            "ssh_key_name": server["ssh_key_name"],
             "assigned_users": assigned_users
         })
 
@@ -783,57 +797,109 @@ async def servers_list(request: Request, user: str = Depends(get_current_admin_u
 
 @admin_router.get("/admin/servers/add", response_class=HTMLResponse)
 async def add_server_page(request: Request, user: str = Depends(get_current_admin_user)):
-    return templates.TemplateResponse("add_server.html", {"request": request})
+    conn = get_db_connection()
+    ssh_keys = conn.execute('SELECT id, key_name FROM ssh_keys').fetchall()
+    gateway_proxies = conn.execute('SELECT id, proxy_name, proxy_ip FROM gateway_proxies').fetchall()
+    conn.close()
+    return templates.TemplateResponse("add_server.html", {
+        "request": request,
+        "ssh_keys": ssh_keys,
+        "gateway_proxies": gateway_proxies
+    })
 
 @admin_router.post("/admin/servers/add")
-async def add_server(request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
+async def add_server(
+    request: Request,
+    server_name: str = Form(...),
+    server_ip: str = Form(...),
+    server_ssh_port: int = Form(...),
+    system_username: str = Form(...),
+    system_ssh_key_id: int = Form(...),
+    proxy_id: int = Form(...),
+    user: str = Depends(get_current_admin_user)
+):
     conn = get_db_connection()
-
     existing_server = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server_name,)).fetchone()
     if existing_server:
+        ssh_keys = conn.execute('SELECT id, key_name FROM ssh_keys').fetchall()
+        gateway_proxies = conn.execute('SELECT id, proxy_name, proxy_ip FROM gateway_proxies').fetchall()
         conn.close()
-        return templates.TemplateResponse("add_server.html", {"request": request, "error": "Server name already exists."})
+        return templates.TemplateResponse("add_server.html", {
+            "request": request,
+            "error": "Server name already exists.",
+            "ssh_keys": ssh_keys,
+            "gateway_proxies": gateway_proxies
+        })
 
     auth_token = secrets.token_hex(32)
-    conn.execute('INSERT INTO servers (server_name, auth_token) VALUES (?, ?)', (server_name, auth_token))
+    conn.execute('''
+        INSERT INTO servers (
+            server_name, server_ip, server_ssh_port, system_username, 
+            system_ssh_key_id, proxy_id, auth_token
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        server_name, server_ip, server_ssh_port, system_username,
+        system_ssh_key_id, proxy_id, auth_token
+    ))
     conn.commit()
     conn.close()
 
     log_admin_action(request.session.get("username"), "Created server", server_name)
-
     return RedirectResponse(url="/admin/servers", status_code=303)
 
 @admin_router.get("/admin/servers/edit/{server_id}", response_class=HTMLResponse)
 async def edit_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
     server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
+    ssh_keys = conn.execute('SELECT id, key_name FROM ssh_keys').fetchall()
+    gateway_proxies = conn.execute('SELECT id, proxy_name, proxy_ip FROM gateway_proxies').fetchall()
     conn.close()
 
     if not server:
         raise HTTPException(status_code=404, detail="Server not found")
 
-    # Only show last 8 digits of token in template
     return templates.TemplateResponse("edit_server.html", {
         "request": request,
         "server": server,
+        "ssh_keys": ssh_keys,
+        "gateway_proxies": gateway_proxies,
         "token_preview": server["auth_token"][-8:] if server["auth_token"] else "N/A"
     })
 
 @admin_router.post("/admin/servers/edit/{server_id}")
-async def edit_server(server_id: int, request: Request, server_name: str = Form(...), user: str = Depends(get_current_admin_user)):
+async def edit_server(
+    server_id: int,
+    request: Request,
+    server_name: str = Form(...),
+    server_ip: str = Form(...),
+    server_ssh_port: int = Form(...),
+    system_username: str = Form(...),
+    system_ssh_key_id: int = Form(...),
+    proxy_id: int = Form(...),
+    user: str = Depends(get_current_admin_user)
+):
     conn = get_db_connection()
 
     form = await request.form()
     if "regenerate_token" in form:
         new_token = secrets.token_hex(32)
-        conn.execute('UPDATE servers SET server_name = ?, auth_token = ? WHERE id = ?', (server_name, new_token, server_id))
+        conn.execute('''
+            UPDATE servers
+            SET server_name = ?, server_ip = ?, server_ssh_port = ?, system_username = ?,
+                system_ssh_key_id = ?, proxy_id = ?, auth_token = ?
+            WHERE id = ?
+        ''', (server_name, server_ip, server_ssh_port, system_username, system_ssh_key_id, proxy_id, new_token, server_id))
     else:
-        conn.execute('UPDATE servers SET server_name = ? WHERE id = ?', (server_name, server_id))
+        conn.execute('''
+            UPDATE servers
+            SET server_name = ?, server_ip = ?, server_ssh_port = ?, system_username = ?,
+                system_ssh_key_id = ?, proxy_id = ?
+            WHERE id = ?
+        ''', (server_name, server_ip, server_ssh_port, system_username, system_ssh_key_id, proxy_id, server_id))
     conn.commit()
     conn.close()
 
     log_admin_action(request.session.get("username"), "Edited server", server_name)
-
     return RedirectResponse(url="/admin/servers", status_code=303)
 
 @admin_router.post("/admin/servers/delete/{server_id}")

@@ -17,6 +17,39 @@
                 <input type="text" name="server_name" class="form-control" required>
             </div>
 
+            <div class="mb-3">
+                <label for="server_ip" class="form-label">Server IP:</label>
+                <input type="text" name="server_ip" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="server_ssh_port" class="form-label">SSH Port:</label>
+                <input type="number" name="server_ssh_port" class="form-control" value="22" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="system_username" class="form-label">System Username:</label>
+                <input type="text" name="system_username" class="form-control" required>
+            </div>
+
+            <div class="mb-3">
+                <label for="system_ssh_key_id" class="form-label">System SSH Key:</label>
+                <select name="system_ssh_key_id" class="form-control" required>
+                    {% for key in ssh_keys %}
+                        <option value="{{ key['id'] }}">{{ key['key_name'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-3">
+                <label for="proxy_id" class="form-label">Gateway Proxy:</label>
+                <select name="proxy_id" class="form-control" required>
+                    {% for proxy in gateway_proxies %}
+                        <option value="{{ proxy['id'] }}">{{ proxy['proxy_name'] }} ({{ proxy['proxy_ip'] }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <button type="submit" class="btn btn-primary">Create Server</button>
         </form>
     </div>

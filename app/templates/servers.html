@@ -15,6 +15,10 @@
         <tr>
             <th>ID</th>
             <th>Server Name</th>
+            <th>IP</th>
+            <th>Proxy</th>
+            <th>System User</th>
+            <th>SSH Key</th>
             <th>Assigned Users</th>
             <th>Actions</th>
             <th>Token</th>
@@ -25,6 +29,10 @@
         <tr>
             <td>{{ server["id"] }}</td>
             <td>{{ server["server_name"] }}</td>
+            <td>{{ server["server_ip"] or "—" }}</td>
+            <td>{{ server["proxy_name"] if server["proxy_name"] else "—" }}</td>
+            <td>{{ server["system_username"] or "—" }}</td>
+            <td>{{ server["ssh_key_name"] if server["ssh_key_name"] else "—" }}</td>
             <td>
                 {% if server["assigned_users"] %}
                     {% for user in server["assigned_users"] %}

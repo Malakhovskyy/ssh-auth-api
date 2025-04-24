@@ -1392,3 +1392,38 @@ async def notify_user_password_post(request: Request, task_id: int = Form(...), 
 
     log_admin_action(user["username"], "SSH credentials sent via email", server["server_name"])
     return {"status": "ok"}
+
+@admin_router.post("/admin/internal/user-to-server-unassigned")
+async def notify_user_unassigned_post(request: Request, task_id: int = Form(...), token: str = Form(...)):
+    from services.encryption_service import decrypt_sensitive_value, ENCRYPTION_KEY
+    import hmac
+    from jinja2 import Environment, FileSystemLoader
+    from datetime import datetime
+    from services.email_service import send_email
+
+    if not hmac.compare_digest(token, ENCRYPTION_KEY):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    conn = get_db_connection()
+    task = conn.execute("SELECT * FROM provisioning_tasks WHERE id = ?", (task_id,)).fetchone()
+    if not task:
+        conn.close()
+        raise HTTPException(status_code=404, detail="Task not found")
+
+    user = conn.execute("SELECT username, email FROM users WHERE id = ?", (task["user_id"],)).fetchone()
+    server = conn.execute("SELECT server_name FROM servers WHERE id = ?", (task["server_id"],)).fetchone()
+    conn.close()
+
+    if not user or not server:
+        raise HTTPException(status_code=400, detail="Incomplete data")
+
+    templates = Environment(loader=FileSystemLoader("templates"))
+    email_body = templates.get_template("email/unassignment_notification.html").render({
+        "username": user["username"],
+        "server": server["server_name"],
+        "year": datetime.utcnow().year
+    })
+
+    send_email(user["email"], f"Access Revoked: {server['server_name']}", email_body)
+    log_admin_action(user["username"], "SSH access revoked", server["server_name"])
+    return {"status": "ok"}

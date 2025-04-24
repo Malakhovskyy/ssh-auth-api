@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>SSH Access Revoked</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f6f6f6; padding: 20px;">
+    <table width="100%" style="max-width: 600px; margin: auto; background-color: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <tr>
+            <td>
+                <h2 style="color: #d9534f;">Access Revoked</h2>
+                <p>Hello <strong>{{ username }}</strong>,</p>
+
+                <p>Your SSH access to the server <strong>{{ server }}</strong> has been revoked.</p>
+
+                <p>If you believe this was a mistake or have any questions, please contact your system administrator.</p>
+
+                <p>Best regards,<br>SSH Key Manager</p>
+                <hr>
+                <p style="font-size: 12px; color: #aaa;">&copy; {{ year }} SSH Key Manager</p>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

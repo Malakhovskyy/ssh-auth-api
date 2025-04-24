@@ -25,11 +25,13 @@
 
     <div class="mb-3">
       <label class="form-label">Select SSH Key:</label>
-      <select name="ssh_key_id" class="form-select" required>
-        {% for key in ssh_keys %}
-          <option value="{{ key['id'] }}">{{ key['key_name'] }}</option>
-        {% endfor %}
-      </select>
+      <div id="ssh-key-select-container">
+        <select name="ssh_key_id" class="form-select" required>
+          {% for key in ssh_keys %}
+            <option value="{{ key['id'] }}">{{ key['key_name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
     </div>
 
     <button type="submit" class="btn btn-primary">Assign Selected User</button>
@@ -41,4 +43,33 @@
   <a href="/admin/servers">← Back to Servers</a>
 </div>
 
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const userSelect = document.querySelector("select[name='user_id']");
+    // Use container to allow dynamic replacement if needed in future
+    const sshKeySelect = document.querySelector("select[name='ssh_key_id']");
+
+    userSelect.addEventListener("change", function () {
+        const userId = this.value;
+        fetch(`/admin/api/ssh-keys-for-user/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                sshKeySelect.innerHTML = "";
+                if (data.length === 0) {
+                    const opt = document.createElement("option");
+                    opt.value = "";
+                    opt.textContent = "No SSH keys available";
+                    sshKeySelect.appendChild(opt);
+                } else {
+                    data.forEach(key => {
+                        const opt = document.createElement("option");
+                        opt.value = key.id;
+                        opt.textContent = key.key_name;
+                        sshKeySelect.appendChild(opt);
+                    });
+                }
+            });
+    });
+});
+</script>
 {% endblock %}

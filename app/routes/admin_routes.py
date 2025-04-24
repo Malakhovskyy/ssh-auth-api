@@ -938,7 +938,12 @@ async def assign_user_to_server_page(server_id: int, request: Request, user: str
         raise HTTPException(status_code=404, detail="Server not found")
 
     users = conn.execute('SELECT * FROM users').fetchall()
-    ssh_keys = conn.execute('SELECT * FROM ssh_keys').fetchall()
+    # Only load SSH keys that are assigned to the selected user (server["id"])
+    ssh_keys = conn.execute('''
+        SELECT ssh_keys.* FROM ssh_keys
+        JOIN assignments ON ssh_keys.id = assignments.ssh_key_id
+        WHERE assignments.user_id = ?
+    ''', (server["id"],)).fetchall()
 
     conn.close()
 
@@ -948,6 +953,19 @@ async def assign_user_to_server_page(server_id: int, request: Request, user: str
         "users": users,
         "ssh_keys": ssh_keys
     })
+
+@admin_router.get("/admin/api/ssh-keys-for-user/{user_id}")
+async def api_ssh_keys_for_user(user_id: int):
+    conn = get_db_connection()
+    keys = conn.execute('''
+        SELECT ssh_keys.id, ssh_keys.key_name
+        FROM ssh_keys
+        JOIN assignments ON ssh_keys.id = assignments.ssh_key_id
+        WHERE assignments.user_id = ?
+    ''', (user_id,)).fetchall()
+    conn.close()
+    return [{"id": key["id"], "key_name": key["key_name"]} for key in keys]
+
 
 @admin_router.post("/admin/servers/assign-user/{server_id}")
 async def assign_user_to_server(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):

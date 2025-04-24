@@ -800,7 +800,7 @@ async def servers_list(request: Request, user: str = Depends(get_current_admin_u
 @admin_router.get("/admin/servers/add", response_class=HTMLResponse)
 async def add_server_page(request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
-    ssh_keys = conn.execute('SELECT id, key_name FROM ssh_keys').fetchall()
+    ssh_keys = conn.execute('SELECT id, key_name FROM system_ssh_keys').fetchall()
     gateway_proxies = conn.execute('SELECT id, proxy_name, proxy_ip FROM gateway_proxies').fetchall()
     conn.close()
     return templates.TemplateResponse("add_server.html", {
@@ -823,7 +823,7 @@ async def add_server(
     conn = get_db_connection()
     existing_server = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server_name,)).fetchone()
     if existing_server:
-        ssh_keys = conn.execute('SELECT id, key_name FROM ssh_keys').fetchall()
+        ssh_keys = conn.execute('SELECT id, key_name FROM system_ssh_keys').fetchall()
         gateway_proxies = conn.execute('SELECT id, proxy_name, proxy_ip FROM gateway_proxies').fetchall()
         conn.close()
         return templates.TemplateResponse("add_server.html", {
@@ -853,7 +853,7 @@ async def add_server(
 async def edit_server_page(server_id: int, request: Request, user: str = Depends(get_current_admin_user)):
     conn = get_db_connection()
     server = conn.execute('SELECT * FROM servers WHERE id = ?', (server_id,)).fetchone()
-    ssh_keys = conn.execute('SELECT id, key_name FROM ssh_keys').fetchall()
+    ssh_keys = conn.execute('SELECT id, key_name FROM system_ssh_keys').fetchall()
     gateway_proxies = conn.execute('SELECT id, proxy_name, proxy_ip FROM gateway_proxies').fetchall()
     conn.close()
 

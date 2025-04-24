@@ -27,7 +27,7 @@
           <td>{{ proxy["proxy_port"] }}</td>
           <td>{{ proxy["proxy_type"] }}</td>
           <td>
-            <input type="text" class="form-control form-control-sm" readonly value="{{ proxy['proxy_auth_token'] }}">
+            <button class="btn btn-sm btn-secondary" onclick="copyToClipboard('{{ proxy['proxy_auth_token'] }}')">📋 Copy Token</button>
           </td>
           <td>
             <form method="post" action="/admin/gateway-proxies/delete/{{ proxy['id'] }}" onsubmit="return confirm('Are you sure you want to delete this proxy?');">
@@ -40,4 +40,13 @@
     </table>
   </div>
 </div>
+<script>
+function copyToClipboard(token) {
+  navigator.clipboard.writeText(token).then(() => {
+    alert("Token copied to clipboard.");
+  }).catch(err => {
+    alert("Failed to copy token: " + err);
+  });
+}
+</script>
 {% endblock %}

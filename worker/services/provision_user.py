@@ -1,7 +1,9 @@
 import requests
-from worker.models.models import get_db_connection
-from worker.main import celery_app
 from datetime import datetime
+from models.models import get_db_connection
+from celery_config import celery_app
+from services.encryption_service import decrypt_sensitive_value
+
 
 @celery_app.task(bind=True, max_retries=None)
 def provision_user_task(self, task_id: int):

@@ -31,7 +31,7 @@ def provision_user_task(self, task_id: int):
             "server_ip": server["server_ip"],
             "server_ssh_port": server["server_ssh_port"],
             "system_username": server["system_username"],
-            "system_ssh_key": ssh_key["ssh_key_data"]
+            "system_ssh_key": decrypt_sensitive_value(ssh_key["ssh_key_data"])
         }
 
         headers = {

@@ -3,6 +3,7 @@ from datetime import datetime
 from models.models import get_db_connection
 from celery_config import celery_app
 from services.encryption_service import decrypt_sensitive_value
+import time
 
 
 @celery_app.task(bind=True, max_retries=None)
@@ -45,6 +46,35 @@ def provision_user_task(self, task_id: int):
 
         if response.status_code == 200:
             conn.execute("UPDATE provisioning_tasks SET status = 'in_progress' WHERE id = ?", (task_id,))
+
+            # Poll gateway proxy for up to 60s (20 attempts, 3s interval)
+            for _ in range(20):
+                try:
+                    get_url = f"https://{proxy['proxy_ip']}:{proxy['proxy_port']}/get_task/{task_id}"
+                    poll_response = requests.get(get_url, headers=headers, timeout=5, verify=False)
+                    poll_data = poll_response.json()
+
+                    status = poll_data.get("status")
+                    log = poll_data.get("log", "")
+
+                    if status in ["done", "failed"]:
+                        conn = get_db_connection()
+                        conn.execute("UPDATE provisioning_tasks SET status = ? WHERE id = ?", (status, task_id))
+                        conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, log))
+                        conn.commit()
+                        conn.close()
+                        return
+                except Exception as e:
+                    pass
+
+                time.sleep(3)
+
+            # If no terminal status after 1 minute, mark as timeout
+            conn = get_db_connection()
+            conn.execute("UPDATE provisioning_tasks SET status = 'timeout' WHERE id = ?", (task_id,))
+            conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, "SSH Gateway Timeout"))
+            conn.commit()
+            conn.close()
         else:
             conn.execute("UPDATE provisioning_tasks SET status = 'failed' WHERE id = ?", (task_id,))
             conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)",

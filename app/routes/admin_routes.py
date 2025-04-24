@@ -1222,3 +1222,59 @@ async def provision_task_list(request: Request, user: str = Depends(get_current_
         "tasks": tasks,
         "logs": logs_dict
     })
+
+# system ssh key
+@admin_router.get("/admin/system-ssh-keys", response_class=HTMLResponse)
+async def system_ssh_keys(request: Request, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    keys = conn.execute("SELECT id, key_name, created_at, comment FROM system_ssh_keys ORDER BY id DESC").fetchall()
+    conn.close()
+    return templates.TemplateResponse("system_ssh_keys.html", {
+        "request": request,
+        "keys": keys
+    })
+
+    
+@admin_router.get("/admin/system-ssh-keys/add", response_class=HTMLResponse)
+async def add_system_ssh_key_form(request: Request, user: str = Depends(get_current_admin_user)):
+    return templates.TemplateResponse("add_system_ssh_key.html", {"request": request})
+
+@admin_router.post("/admin/system-ssh-keys/add", response_class=HTMLResponse)
+async def save_system_ssh_key(
+    request: Request,
+    key_name: str = Form(...),
+    key_data: str = Form(...),
+    key_password: str = Form(None),
+    comment: str = Form(None),
+    user: str = Depends(get_current_admin_user)
+):
+    encrypted_key = encrypt_sensitive_value(key_data)
+    encrypted_password = encrypt_sensitive_value(key_password) if key_password else None
+
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO system_ssh_keys (key_name, key_data, key_password, comment)
+        VALUES (?, ?, ?, ?)
+    ''', (key_name, encrypted_key, encrypted_password, comment))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(user, f"Added system SSH key: {key_name}")
+    return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)
+
+@admin_router.post("/admin/system-ssh-keys/delete/{key_id}", response_class=HTMLResponse)
+async def delete_system_ssh_key(
+    request: Request,
+    key_id: int,
+    user: str = Depends(get_current_admin_user)
+):
+    conn = get_db_connection()
+    key = conn.execute("SELECT key_name FROM system_ssh_keys WHERE id = ?", (key_id,)).fetchone()
+
+    if key:
+        conn.execute("DELETE FROM system_ssh_keys WHERE id = ?", (key_id,))
+        conn.commit()
+        log_admin_action(user, f"Deleted system SSH key: {key['key_name']}")
+
+    conn.close()
+    return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)

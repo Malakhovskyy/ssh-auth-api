@@ -252,7 +252,16 @@ def init_db():
         )
     ''')
 
-    # ====== SMART COLUMN ADDITIONS HERE ======
+     cursor.execute('''
+        CREATE TABLE IF NOT EXISTS system_ssh_keys (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            key_name TEXT NOT NULL,
+            key_data TEXT NOT NULL,
+            key_password TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            comment TEXT
+        )
+    ''')
 
 
 

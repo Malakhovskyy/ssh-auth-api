@@ -252,7 +252,7 @@ def init_db():
         )
     ''')
 
-     cursor.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS system_ssh_keys (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             key_name TEXT NOT NULL,

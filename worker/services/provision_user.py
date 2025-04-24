@@ -17,7 +17,7 @@ def provision_user_task(self, task_id: int):
         server = conn.execute("SELECT * FROM servers WHERE id = ?", (task["server_id"],)).fetchone()
         user = conn.execute("SELECT * FROM users WHERE id = ?", (task["user_id"],)).fetchone()
         proxy = conn.execute("SELECT * FROM gateway_proxies WHERE id = ?", (server["proxy_id"],)).fetchone()
-        ssh_key = conn.execute("SELECT ssh_key_data FROM ssh_keys WHERE id = ?", (server["system_ssh_key_id"],)).fetchone()
+        ssh_key = conn.execute("SELECT key_data, key_password FROM system_ssh_keys WHERE id = ?", (server["system_ssh_key_id"],)).fetchone()
 
         if not server or not user or not proxy or not ssh_key:
             conn.execute("UPDATE provisioning_tasks SET status = 'failed' WHERE id = ?", (task_id,))
@@ -31,7 +31,8 @@ def provision_user_task(self, task_id: int):
             "server_ip": server["server_ip"],
             "server_ssh_port": server["server_ssh_port"],
             "system_username": server["system_username"],
-            "system_ssh_key": decrypt_sensitive_value(ssh_key["ssh_key_data"])
+            "system_ssh_key": decrypt_sensitive_value(ssh_key["key_data"]),
+            "ssh_key_password": decrypt_sensitive_value(ssh_key["key_password"]) if ssh_key["key_password"] else None
         }
 
         headers = {

@@ -28,11 +28,11 @@ async def get_ssh_key(server: str, username: str, request: Request):
     # Establish a database connection to retrieve user and server information
     conn = get_db_connection()
 
-    # Query the database to find the user by username and check status
-    user = conn.execute('SELECT id, status FROM users WHERE username = ?', (username,)).fetchone()
-    if not user or user["status"] != "active":
+    # Query the database to find the user by username and check locked and enabled flags
+    user = conn.execute('SELECT id, locked, enabled FROM users WHERE username = ?', (username,)).fetchone()
+    if not user or user["locked"] or not user["enabled"]:
         conn.close()
-        log_api_access(server, username, client_ip, "USER LOCKED", "User is locked or not found")
+        log_api_access(server, username, client_ip, "USER LOCKED", "User is locked or disabled")
         raise HTTPException(status_code=403, detail="User is locked or inactive")
 
     # Query the database to find the server by server name

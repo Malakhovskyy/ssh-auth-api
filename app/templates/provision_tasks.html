@@ -25,7 +25,16 @@
           <td>{{ task["server_name"] }}</td>
           <td>{{ task["proxy_name"] or "—" }}</td>
           <td>
-            <a href="#" data-bs-toggle="modal" data-bs-target="#logModal{{ task['id'] }}">{{ task["status"] }}</a>
+            <a href="#" data-bs-toggle="modal" data-bs-target="#logModal{{ task['id'] }}">
+              <span class="badge 
+                {% if task['status'] == 'done' %}bg-success
+                {% elif task['status'] == 'failed' %}bg-danger
+                {% elif task['status'] == 'in_progress' %}bg-warning text-dark
+                {% elif task['status'] == 'timeout' %}bg-secondary
+                {% else %}bg-light text-dark{% endif %}">
+                {{ task["status"] }}
+              </span>
+            </a>
 
             <!-- Modal -->
             <div class="modal fade" id="logModal{{ task['id'] }}" tabindex="-1" aria-labelledby="logModalLabel{{ task['id'] }}" aria-hidden="true">

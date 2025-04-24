@@ -12,7 +12,7 @@ import secrets
 import os
 import hmac
 from datetime import datetime, timedelta
-from services.provisioning_service import trigger_provisioning_task
+from services.provisioning_service import trigger_provisioning_task, trigger_unprovisioning_task
 
 
 
@@ -1030,7 +1030,8 @@ async def unassign_user_from_server(server_id: int, user_id: int, request: Reque
     username = user_rec["username"] if user_rec else f"UserID {user_id}"
 
     conn.close()
-
+    # Trigger background provisioning task
+    trigger_ubprovisioning_task(user_id, server_id)
     log_admin_action(request.session.get("username"), "Unassigned user from server", f"{username} ← {server_name}")
 
     return RedirectResponse(url="/admin/servers", status_code=303)

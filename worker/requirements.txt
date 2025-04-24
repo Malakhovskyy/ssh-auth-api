@@ -4,3 +4,4 @@ cryptography
 itsdangerous
 python-dotenv
 sqlalchemy
+requests

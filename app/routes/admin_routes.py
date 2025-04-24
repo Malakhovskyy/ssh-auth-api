@@ -1278,3 +1278,32 @@ async def delete_system_ssh_key(
 
     conn.close()
     return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)
+
+@admin_router.get("/admin/system-ssh-keys/edit/{key_id}", response_class=HTMLResponse)
+async def edit_system_ssh_key_form(request: Request, key_id: int, user: str = Depends(get_current_admin_user)):
+    conn = get_db_connection()
+    key = conn.execute("SELECT id, key_name, comment FROM system_ssh_keys WHERE id = ?", (key_id,)).fetchone()
+    conn.close()
+    if not key:
+        raise HTTPException(status_code=404, detail="Key not found")
+    return templates.TemplateResponse("edit_system_ssh_key.html", {"request": request, "key": key})
+
+@admin_router.post("/admin/system-ssh-keys/edit/{key_id}", response_class=HTMLResponse)
+async def update_system_ssh_key(
+    request: Request,
+    key_id: int,
+    key_name: str = Form(...),
+    comment: str = Form(None),
+    user: str = Depends(get_current_admin_user)
+):
+    conn = get_db_connection()
+    conn.execute('''
+        UPDATE system_ssh_keys
+        SET key_name = ?, comment = ?
+        WHERE id = ?
+    ''', (key_name, comment, key_id))
+    conn.commit()
+    conn.close()
+
+    log_admin_action(user, f"Updated system SSH key #{key_id}: {key_name}")
+    return RedirectResponse(url="/admin/system-ssh-keys", status_code=303)

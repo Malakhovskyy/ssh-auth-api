@@ -21,11 +21,30 @@ def trigger_provisioning_task(user_id: int, server_id: int):
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    # Insert provisioning task with encrypted password
+    # Insert provisioning task with encrypted password and type 'create'
     cursor.execute('''
-        INSERT INTO provisioning_tasks (server_id, user_id, status, generated_password)
-        VALUES (?, ?, 'pending', ?)
+        INSERT INTO provisioning_tasks (server_id, user_id, status, type, generated_password)
+        VALUES (?, ?, 'pending', 'create', ?)
     ''', (server_id, user_id, encrypted_password))
+
+    task_id = cursor.lastrowid
+    conn.commit()
+    conn.close()
+
+    # Send task to RabbitMQ via Celery
+    queue_provisioning_task(task_id)
+
+    return task_id
+
+def trigger_unprovisioning_task(user_id: int, server_id: int):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Insert provisioning task with type 'delete'
+    cursor.execute('''
+        INSERT INTO provisioning_tasks (server_id, user_id, status, type)
+        VALUES (?, ?, 'pending', 'delete')
+    ''', (server_id, user_id))
 
     task_id = cursor.lastrowid
     conn.commit()

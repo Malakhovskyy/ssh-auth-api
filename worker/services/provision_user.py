@@ -33,14 +33,17 @@ def provision_user_task(self, task_id: int):
 
         payload = {
             "task_id": task_id,
+            "task_type": task["type"],
             "username": user["username"],
             "server_ip": server["server_ip"],
             "server_ssh_port": server["server_ssh_port"],
             "system_username": server["system_username"],
             "system_ssh_key": decrypt_sensitive_value(ssh_key["key_data"]),
             "ssh_key_password": decrypt_sensitive_value(ssh_key["key_password"]) if ssh_key["key_password"] else None,
-            "user_password": decrypted_password
         }
+
+        if task["type"] == "create":
+            payload["user_password"] = decrypted_password
 
         headers = {
             "Authorization": f"Bearer {proxy['proxy_auth_token']}"
@@ -100,13 +103,20 @@ def monitor_provisioning_status(self, task_id: int):
                     conn.execute("UPDATE provisioning_tasks SET status = ? WHERE id = ?", (status, task_id))
                     conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, log))
                     conn.commit()
-                if status == "done":
+                if status == "done" and task["type"] == "create":
                     try:
                         api_url = os.getenv("INTERNAL_NOTIFY_URL", "http://ssh-key-manager:8000/admin/internal/user-to-server-assigned")
                         requests.post(api_url, data={"task_id": task_id, "token": ENCRYPTION_KEY}, timeout=10)
                         print(f"[DEBUG] Notified manager app about completed task {task_id}")
                     except Exception as notify_err:
                         print(f"[WARNING] Failed to notify manager app for task {task_id}: {str(notify_err)}")
+                if status == "done" and task["type"] == "delete":
+                    try:
+                        api_url = os.getenv("INTERNAL_NOTIFY_URL_DELETE", "http://ssh-key-manager:8000/admin/internal/user-to-server-unassigned")
+                        requests.post(api_url, data={"task_id": task_id, "token": ENCRYPTION_KEY}, timeout=10)
+                        print(f"[DEBUG] Notified manager app about deleted user for task {task_id}")
+                    except Exception as notify_err:
+                        print(f"[WARNING] Failed to notify manager app of user deletion for task {task_id}: {str(notify_err)}")
                 return
         except Exception:
             pass

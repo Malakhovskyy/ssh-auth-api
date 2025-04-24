@@ -229,7 +229,7 @@ def init_db():
         )
     ''')
 
-cursor.execute('''
+    cursor.execute('''
         CREATE TABLE IF NOT EXISTS provisioning_tasks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

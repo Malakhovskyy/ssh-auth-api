@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Gateway Proxies{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title">Gateway Proxies</h3>
+    <a href="/admin/gateway-proxies/add" class="btn btn-primary btn-sm">➕ Add Proxy</a>
+  </div>
+  <div class="card-body">
+    <table class="table table-bordered table-hover">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>IP / Host</th>
+          <th>Port</th>
+          <th>Type</th>
+          <th>Token</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for proxy in proxies %}
+        <tr>
+          <td>{{ proxy["proxy_name"] }}</td>
+          <td>{{ proxy["proxy_ip"] }}</td>
+          <td>{{ proxy["proxy_port"] }}</td>
+          <td>{{ proxy["proxy_type"] }}</td>
+          <td>
+            <input type="text" class="form-control form-control-sm" readonly value="{{ proxy['proxy_auth_token'] }}">
+          </td>
+          <td>
+            <form method="post" action="/admin/gateway-proxies/delete/{{ proxy['id'] }}" onsubmit="return confirm('Are you sure you want to delete this proxy?');">
+              <button type="submit" class="btn btn-danger btn-sm">🗑 Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

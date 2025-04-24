@@ -1090,3 +1090,36 @@ async def view_email_logs(request: Request, user: str = Depends(get_current_admi
     conn.close()
 
     return templates.TemplateResponse("email_logs.html", {"request": request, "logs": email_logs})
+
+
+# proxy
+@admin_router.get("/admin/gateway-proxies", response_class=HTMLResponse)
+async def list_gateway_proxies(request: Request):
+    conn = get_db_connection()
+    proxies = conn.execute('SELECT * FROM gateway_proxies').fetchall()
+    conn.close()
+    return templates.TemplateResponse("gateway_proxies.html", {"request": request, "proxies": proxies})
+
+@admin_router.get("/admin/gateway-proxies/add", response_class=HTMLResponse)
+async def add_gateway_proxy_form(request: Request):
+    return templates.TemplateResponse("add_gateway_proxy.html", {"request": request})
+
+@admin_router.post("/admin/gateway-proxies/add")
+async def add_gateway_proxy(request: Request, proxy_name: str = Form(...), proxy_ip: str = Form(...), proxy_port: int = Form(...)):
+    proxy_auth_token = secrets.token_hex(32)
+    conn = get_db_connection()
+    conn.execute('''
+        INSERT INTO gateway_proxies (proxy_name, proxy_ip, proxy_port, proxy_type, proxy_auth_token)
+        VALUES (?, ?, ?, 'active', ?)
+    ''', (proxy_name, proxy_ip, proxy_port, proxy_auth_token))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/admin/gateway-proxies", status_code=303)
+
+@admin_router.post("/admin/gateway-proxies/delete/{proxy_id}")
+async def delete_gateway_proxy(request: Request, proxy_id: int):
+    conn = get_db_connection()
+    conn.execute('DELETE FROM gateway_proxies WHERE id = ?', (proxy_id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/admin/gateway-proxies", status_code=303)

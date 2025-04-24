@@ -3,7 +3,6 @@ from datetime import datetime
 from models.models import get_db_connection
 from celery_config import celery_app
 from services.encryption_service import decrypt_sensitive_value
-import time
 
 
 @celery_app.task(bind=True, max_retries=None)
@@ -11,7 +10,6 @@ def provision_user_task(self, task_id: int):
     try:
         conn = get_db_connection()
 
-        # 1. Get task + server + user info
         task = conn.execute("SELECT * FROM provisioning_tasks WHERE id = ?", (task_id,)).fetchone()
         if not task:
             return
@@ -27,7 +25,6 @@ def provision_user_task(self, task_id: int):
             conn.close()
             return
 
-        # 2. Send task to Gateway Proxy
         payload = {
             "task_id": task_id,
             "username": user["username"],
@@ -46,42 +43,14 @@ def provision_user_task(self, task_id: int):
 
         if response.status_code == 200:
             conn.execute("UPDATE provisioning_tasks SET status = 'in_progress' WHERE id = ?", (task_id,))
-
-            # Poll gateway proxy for up to 60s (20 attempts, 3s interval)
-            for _ in range(20):
-                try:
-                    get_url = f"https://{proxy['proxy_ip']}:{proxy['proxy_port']}/get_task/{task_id}"
-                    poll_response = requests.get(get_url, headers=headers, timeout=5, verify=False)
-                    poll_data = poll_response.json()
-
-                    status = poll_data.get("status")
-                    log = poll_data.get("log", "")
-
-                    if status in ["done", "failed"]:
-                        conn = get_db_connection()
-                        conn.execute("UPDATE provisioning_tasks SET status = ? WHERE id = ?", (status, task_id))
-                        conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, log))
-                        conn.commit()
-                        conn.close()
-                        return
-                except Exception as e:
-                    pass
-
-                time.sleep(3)
-
-            # If no terminal status after 1 minute, mark as timeout
-            conn = get_db_connection()
-            conn.execute("UPDATE provisioning_tasks SET status = 'timeout' WHERE id = ?", (task_id,))
-            conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, "SSH Gateway Timeout"))
             conn.commit()
             conn.close()
+            monitor_provisioning_status.delay(task_id)
         else:
             conn.execute("UPDATE provisioning_tasks SET status = 'failed' WHERE id = ?", (task_id,))
-            conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)",
-                         (task_id, f"Failed to send task: {response.text}"))
-
-        conn.commit()
-        conn.close()
+            conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, f"Failed to send task: {response.text}"))
+            conn.commit()
+            conn.close()
 
     except Exception as e:
         log_msg = f"[!] Exception during task execution: {str(e)}"
@@ -91,3 +60,46 @@ def provision_user_task(self, task_id: int):
         conn.commit()
         conn.close()
         raise self.retry(exc=e, countdown=10)
+
+
+@celery_app.task(bind=True, max_retries=None)
+def monitor_provisioning_status(self, task_id: int):
+    import time
+
+    conn = get_db_connection()
+    task = conn.execute("SELECT * FROM provisioning_tasks WHERE id = ?", (task_id,)).fetchone()
+    server = conn.execute("SELECT * FROM servers WHERE id = ?", (task["server_id"],)).fetchone()
+    proxy = conn.execute("SELECT * FROM gateway_proxies WHERE id = ?", (server["proxy_id"],)).fetchone()
+    conn.close()
+
+    headers = {
+        "Authorization": f"Bearer {proxy['proxy_auth_token']}"
+    }
+
+    for _ in range(20):  # 60 seconds, 3s intervals
+        try:
+            get_url = f"https://{proxy['proxy_ip']}:{proxy['proxy_port']}/get_task/{task_id}"
+            response = requests.get(get_url, headers=headers, timeout=5, verify=False)
+            print(f"[DEBUG] Raw response from proxy for task {task_id}: {response.text}")
+            data = response.json()
+            status = data.get("status")
+            log = data.get("log", "")
+
+            print(f"[DEBUG] Polling task {task_id}: status={status}")
+
+            if status in ["done", "failed"]:
+                with get_db_connection() as conn:
+                    conn.execute("UPDATE provisioning_tasks SET status = ? WHERE id = ?", (status, task_id))
+                    conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, log))
+                    conn.commit()
+                return
+        except Exception:
+            pass
+
+        time.sleep(3)
+
+    print(f"[DEBUG] Task {task_id} polling timed out after 60 seconds.")
+    with get_db_connection() as conn:
+        conn.execute("UPDATE provisioning_tasks SET status = 'timeout' WHERE id = ?", (task_id,))
+        conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, "SSH Gateway Timeout"))
+        conn.commit()

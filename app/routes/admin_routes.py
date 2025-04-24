@@ -1031,7 +1031,7 @@ async def unassign_user_from_server(server_id: int, user_id: int, request: Reque
 
     conn.close()
     # Trigger background provisioning task
-    trigger_ubprovisioning_task(user_id, server_id)
+    trigger_unprovisioning_task(user_id, server_id)
     log_admin_action(request.session.get("username"), "Unassigned user from server", f"{username} ← {server_name}")
 
     return RedirectResponse(url="/admin/servers", status_code=303)

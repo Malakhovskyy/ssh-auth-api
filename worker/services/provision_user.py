@@ -42,6 +42,13 @@ def provision_user_task(self, task_id: int):
             "ssh_key_password": decrypt_sensitive_value(ssh_key["key_password"]) if ssh_key["key_password"] else None,
         }
 
+        masked_payload = payload.copy()
+        masked_payload["system_ssh_key"] = "[MASKED_SSH_KEY]"
+        if "user_password" in masked_payload:
+            masked_payload["user_password"] = "[MASKED_PASSWORD]"
+        if "ssh_key_password" in masked_payload:
+            masked_payload["ssh_key_password"] = "[MASKED_PASSWORD]"
+
         if task["type"] == "create":
             payload["user_password"] = decrypted_password
 
@@ -64,7 +71,7 @@ def provision_user_task(self, task_id: int):
             conn.close()
 
     except Exception as e:
-        log_msg = f"[!] Exception during task execution: {str(e)}"
+        log_msg = f"[!] Exception during task execution: {str(e)} | Payload: {masked_payload}"
         conn = get_db_connection()
         conn.execute("UPDATE provisioning_tasks SET status = 'failed' WHERE id = ?", (task_id,))
         conn.execute("INSERT INTO provisioning_logs (task_id, log_text) VALUES (?, ?)", (task_id, log_msg))

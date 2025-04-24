@@ -28,8 +28,12 @@ async def get_ssh_key(server: str, username: str, request: Request):
     # Establish a database connection to retrieve user and server information
     conn = get_db_connection()
 
-    # Query the database to find the user by username
-    user = conn.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone()
+    # Query the database to find the user by username and check status
+    user = conn.execute('SELECT id, status FROM users WHERE username = ?', (username,)).fetchone()
+    if not user or user["status"] != "active":
+        conn.close()
+        log_api_access(server, username, client_ip, "USER LOCKED", "User is locked or not found")
+        raise HTTPException(status_code=403, detail="User is locked or inactive")
 
     # Query the database to find the server by server name
     server_rec = conn.execute('SELECT id FROM servers WHERE server_name = ?', (server,)).fetchone()
@@ -46,7 +50,7 @@ async def get_ssh_key(server: str, username: str, request: Request):
         raise HTTPException(status_code=401, detail="Invalid Authorization token")
 
     # Check if the user or server was not found in the database
-    if not user or not server_rec:
+    if not server_rec:
         conn.close()
         log_api_access(server, username, client_ip, "NOT FOUND", "User or Server not found")
         raise HTTPException(status_code=404, detail="User or server not found")

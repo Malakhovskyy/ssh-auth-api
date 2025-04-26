@@ -760,6 +760,23 @@ async def assign_key_submit(user_id: int, request: Request, user: str = Depends(
 
     return RedirectResponse(url="/admin/ssh-users", status_code=303)
 
+# lock key
+@admin_router.post("/admin/ssh-keys/lock/{ssh_key_id}")
+async def lock_ssh_key(request: Request, ssh_key_id: int):
+    conn = get_db_connection()
+    conn.execute('UPDATE ssh_keys SET locked = 1 WHERE id = ?', (ssh_key_id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
+@admin_router.post("/admin/ssh-keys/unlock/{ssh_key_id}")
+async def unlock_ssh_key(request: Request, ssh_key_id: int):
+    conn = get_db_connection()
+    conn.execute('UPDATE ssh_keys SET locked = 0 WHERE id = ?', (ssh_key_id,))
+    conn.commit()
+    conn.close()
+    return RedirectResponse(url="/admin/ssh-keys", status_code=303)
+
 
 # --- Server Management (no change needed, admin-only already protected properly) ---
 #Server Manager key assign
